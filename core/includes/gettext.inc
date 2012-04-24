@@ -6,7 +6,28 @@
  *
  * @todo Decouple these functions from Locale API and put to gettext_ namespace.
  */
+// NOTE: this code is based on Sutharsan version from
+// http://drupal.org/node/1189184#comment-5776970
+// It's current purpose is to make the testbot happy and clemens lazy
 
+use Drupal\Core\Gettext\PoDbReader;
+use Drupal\Core\Gettext\PoDbWriter;
+use Drupal\Core\Gettext\PoFileReader;
+use Drupal\Core\Gettext\PoFileWriter;
+use Drupal\Core\Gettext\POMemoryWriter;
+
+function _locale_files_to_memory($langcode, $files) {
+  $writer = new POMemoryWriter();
+  $writer->setLangcode($langcode);
+  foreach ($files as $file) {
+    $reader = new PoFileReader();
+    $reader->setURI($file->uri);
+    $reader->setLangcode($langcode);
+    $reader->open();
+    $writer->writeItems($reader, -1);
+  }
+  return $writer->getData();
+}
 /**
  * @defgroup locale-api-import-export Translation import/export API.
  * @{
@@ -32,48 +53,92 @@
  *   Use LOCALE_CUSTOMIZED or LOCALE_NOT_CUSTOMIZED. All strings in the file
  *   will be saved with this customization flag.
  */
-function _locale_import_po($file, $langcode, $overwrite_options, $customized = LOCALE_NOT_CUSTOMIZED) {
+function _locale_import_po($file, $langcode, $overwrite_options, $customized = LOCALE_NOT_CUSTOMIZED, $is_batch = FALSE) {
   // Try to allocate enough time to parse and import the data.
   drupal_set_time_limit(240);
 
+  //TODO: why not check when having a batch
+  //@see locale_translate_batch_import which calls _locale_import_read_po direct
+  //
   // Check if we have the language already in the database.
-  if (!language_load($langcode)) {
-    drupal_set_message(t('The language selected for import is not supported.'), 'error');
+  if (!$is_batch) {
+    if (!language_load($langcode)) {
+      drupal_set_message(t('The language selected for import is not supported.'), 'error');
+      return FALSE;
+    }
+  }
+
+  $reader = new PoFileReader();
+  $reader->setLangcode($langcode);
+  $reader->setURI($file->uri);
+
+  // ADD try|catch
+  // When opening header is parsed immediately
+  $reader->open();
+
+  // Add exception when file is not readably: @see _locale_import_read_po()
+  //
+  // Better testing for malformed header.
+  // @see
+  // - _locale_import_one_string()
+  // - _locale_import_parse_header();
+  // - _locale_import_parse_plural_forms();
+  $header = $reader->getHeader();
+  if (!$is_batch) {
+    if (!$header) {
+      drupal_set_message(t('The translation file %filename appears to have a missing or malformed header.', array('%filename' => $file->filename)), 'error');
+    }
+  }
+
+  $writer = new PODbWriter();
+  $writer->setLangcode($langcode);
+  $writer->setHeader($header);
+  $options = array(
+    'overwrite_options' => $overwrite_options,
+    'customized' => $customized,
+  );
+  $writer->setOptions($options);
+
+  try {
+    // TODO: make sure exception occurs
+    // Get strings from file (returns on failure after a partial import, or on success)
+    //  $status = _locale_import_read_po('db-store', $file, $overwrite_options, $langcode, $customized);
+    //  if ($status === FALSE) {
+    //    // Error messages are set in _locale_import_read_po().
+    //    return FALSE;
+    //  }
+    $writer->writeItems($reader, -1);
+  }
+  catch (Exception $exc) {
     return FALSE;
   }
 
-  // Get strings from file (returns on failure after a partial import, or on success)
-  $status = _locale_import_read_po('db-store', $file, $overwrite_options, $langcode, $customized);
-  if ($status === FALSE) {
-    // Error messages are set in _locale_import_read_po().
-    return FALSE;
-  }
+  $report = $writer->getReport();
+  $additions = $report['additions'];
+  $updates = $report['updates'];
+  $deletes = $report['deletes'];
+  $skips = $report['skips'];
 
-  // Get status information on import process.
-  list($header_done, $additions, $updates, $deletes, $skips) = _locale_import_one_string('db-report');
+  if (!$is_batch) {
+    // Clear cache and force refresh of JavaScript translations.
+    _locale_invalidate_js($langcode);
+    cache()->deletePrefix('locale:');
 
-  if (!$header_done) {
-    drupal_set_message(t('The translation file %filename appears to have a missing or malformed header.', array('%filename' => $file->filename)), 'error');
-  }
+    // Rebuild the menu, strings may have changed.
+    menu_rebuild();
 
-  // Clear cache and force refresh of JavaScript translations.
-  _locale_invalidate_js($langcode);
-  cache()->deletePrefix('locale:');
-
-  // Rebuild the menu, strings may have changed.
-  menu_rebuild();
-
-  drupal_set_message(t('The translation was successfully imported. There are %number newly created translated strings, %update strings were updated and %delete strings were removed.', array('%number' => $additions, '%update' => $updates, '%delete' => $deletes)));
-  watchdog('locale', 'Imported %file into %locale: %number new strings added, %update updated and %delete removed.', array('%file' => $file->filename, '%locale' => $langcode, '%number' => $additions, '%update' => $updates, '%delete' => $deletes));
-  if ($skips) {
-    if (module_exists('dblog')) {
-      $skip_message = format_plural($skips, 'A translation string was skipped because of disallowed or malformed HTML. <a href="@url">See the log</a> for details.', '@count translation strings were skipped because of disallowed or malformed HTML. <a href="@url">See the log</a> for details.', array('@url' => url('admin/reports/dblog')));
+    drupal_set_message(t('The translation was successfully imported. There are %number newly created translated strings, %update strings were updated and %delete strings were removed.', array('%number' => $additions, '%update' => $updates, '%delete' => $deletes)));
+    watchdog('locale', 'Imported %file into %locale: %number new strings added, %update updated and %delete removed.', array('%file' => $file->filename, '%locale' => $langcode, '%number' => $additions, '%update' => $updates, '%delete' => $deletes));
+    if ($skips) {
+      if (module_exists('dblog')) {
+        $skip_message = format_plural($skips, 'A translation string was skipped because of disallowed or malformed HTML. <a href="@url">See the log</a> for details.', '@count translation strings were skipped because of disallowed or malformed HTML. <a href="@url">See the log</a> for details.', array('@url' => url('admin/reports/dblog')));
+      }
+      else {
+        $skip_message = format_plural($skips, 'A translation string was skipped because of disallowed or malformed HTML. See the log for details.', '@count translation strings were skipped because of disallowed or malformed HTML. See the log for details.');
+      }
+      drupal_set_message($skip_message, 'error');
+      watchdog('locale', '@count disallowed HTML string(s) in %file', array('@count' => $skips, '%file' => $file->uri), WATCHDOG_WARNING);
     }
-    else {
-      $skip_message = format_plural($skips, 'A translation string was skipped because of disallowed or malformed HTML. See the log for details.', '@count translation strings were skipped because of disallowed or malformed HTML. See the log for details.');
-    }
-    drupal_set_message($skip_message, 'error');
-    watchdog('locale', '@count disallowed HTML string(s) in %file', array('@count' => $skips, '%file' => $file->uri), WATCHDOG_WARNING);
   }
   return TRUE;
 }
@@ -150,8 +215,8 @@ function _locale_import_read_po($op, $file, $overwrite_options = NULL, $lang = N
         _locale_import_one_string($op, $current, $overwrite_options, $lang, $file, $customized);
 
         // Start a new entry for the comment.
-        $current         = array();
-        $current['#'][]  = substr($line, 1);
+        $current = array();
+        $current['#'][] = substr($line, 1);
 
         $context = 'COMMENT';
       }
@@ -426,7 +491,6 @@ function _locale_import_one_string($op, $value = NULL, $overwrite_options = NULL
         }
         $header_done = TRUE;
       }
-
       else {
         // Found a string to store, clean up and prepare the data.
         $comments = _locale_import_shorten_comments(empty($value['#']) ? array() : $value['#']);
@@ -439,14 +503,7 @@ function _locale_import_one_string($op, $value = NULL, $overwrite_options = NULL
         }
 
         _locale_import_one_string_db(
-          $report,
-          $lang,
-          isset($value['msgctxt']) ? $value['msgctxt'] : '',
-          $value['msgid'],
-          $value['msgstr'],
-          $comments,
-          $overwrite_options,
-          $customized
+            $report, $lang, isset($value['msgctxt']) ? $value['msgctxt'] : '', $value['msgid'], $value['msgstr'], $comments, $overwrite_options, $customized
         );
       }
   } // end of db-store operation
@@ -492,8 +549,8 @@ function _locale_import_one_string_db(&$report, $langcode, $context, $source, $t
     ':source' => $source,
     ':context' => $context,
     ':language' => $langcode,
-    ))
-    ->fetchObject();
+      ))
+      ->fetchObject();
 
   if (!empty($translation)) {
     // Skip this string unless it passes a check for dangerous code.
@@ -505,35 +562,35 @@ function _locale_import_one_string_db(&$report, $langcode, $context, $source, $t
     elseif (isset($string->lid)) {
       // We have this source string saved already.
       db_update('locales_source')
-        ->fields(array(
-          'location' => $location,
-        ))
-        ->condition('lid', $string->lid)
-        ->execute();
+          ->fields(array(
+            'location' => $location,
+          ))
+          ->condition('lid', $string->lid)
+          ->execute();
 
       if (!isset($string->customized)) {
         // No translation in this language.
         db_insert('locales_target')
-          ->fields(array(
-            'lid' => $string->lid,
-            'language' => $langcode,
-            'translation' => $translation,
-            'customized' => $customized,
-          ))
-          ->execute();
+            ->fields(array(
+              'lid' => $string->lid,
+              'language' => $langcode,
+              'translation' => $translation,
+              'customized' => $customized,
+            ))
+            ->execute();
 
         $report['additions']++;
       }
       elseif ($overwrite_options[$string->customized ? 'customized' : 'not_customized']) {
         // Translation exists, only overwrite if instructed.
         db_update('locales_target')
-          ->fields(array(
-            'translation' => $translation,
-            'customized' => $customized,
-          ))
-          ->condition('language', $langcode)
-          ->condition('lid', $string->lid)
-          ->execute();
+            ->fields(array(
+              'translation' => $translation,
+              'customized' => $customized,
+            ))
+            ->condition('language', $langcode)
+            ->condition('lid', $string->lid)
+            ->execute();
 
         $report['updates']++;
       }
@@ -542,21 +599,21 @@ function _locale_import_one_string_db(&$report, $langcode, $context, $source, $t
     else {
       // No such source string in the database yet.
       $lid = db_insert('locales_source')
-        ->fields(array(
-          'location' => $location,
-          'source' => $source,
-          'context' => (string) $context,
-        ))
-        ->execute();
+          ->fields(array(
+            'location' => $location,
+            'source' => $source,
+            'context' => (string) $context,
+          ))
+          ->execute();
 
       db_insert('locales_target')
-        ->fields(array(
-           'lid' => $lid,
-           'language' => $langcode,
-           'translation' => $translation,
-           'customized' => $customized,
-        ))
-        ->execute();
+          ->fields(array(
+            'lid' => $lid,
+            'language' => $langcode,
+            'translation' => $translation,
+            'customized' => $customized,
+          ))
+          ->execute();
 
       $report['additions']++;
       return $lid;
@@ -565,246 +622,13 @@ function _locale_import_one_string_db(&$report, $langcode, $context, $source, $t
   elseif (isset($string->lid) && isset($string->customized) && $overwrite_options[$string->customized ? 'customized' : 'not_customized']) {
     // Empty translation, remove existing if instructed.
     db_delete('locales_target')
-      ->condition('language', $langcode)
-      ->condition('lid', $string->lid)
-      ->execute();
+        ->condition('language', $langcode)
+        ->condition('lid', $string->lid)
+        ->execute();
 
     $report['deletes']++;
     return $string->lid;
   }
-}
-
-/**
- * Parses a Gettext Portable Object file header.
- *
- * @param $header
- *   A string containing the complete header.
- *
- * @return
- *   An associative array of key-value pairs.
- */
-function _locale_import_parse_header($header) {
-  $header_parsed = array();
-  $lines = array_map('trim', explode("\n", $header));
-  foreach ($lines as $line) {
-    if ($line) {
-      list($tag, $contents) = explode(":", $line, 2);
-      $header_parsed[trim($tag)] = trim($contents);
-    }
-  }
-  return $header_parsed;
-}
-
-/**
- * Parses a Plural-Forms entry from a Gettext Portable Object file header.
- *
- * @param $pluralforms
- *   A string containing the Plural-Forms entry.
- * @param $filepath
- *   A string containing the filepath.
- *
- * @return
- *   An array containing the number of plurals and a
- *   formula in PHP for computing the plural form.
- */
-function _locale_import_parse_plural_forms($pluralforms, $filepath) {
-  // First, delete all whitespace
-  $pluralforms = strtr($pluralforms, array(" " => "", "\t" => ""));
-
-  // Select the parts that define nplurals and plural
-  $nplurals = strstr($pluralforms, "nplurals=");
-  if (strpos($nplurals, ";")) {
-    $nplurals = substr($nplurals, 9, strpos($nplurals, ";") - 9);
-  }
-  else {
-    return FALSE;
-  }
-  $plural = strstr($pluralforms, "plural=");
-  if (strpos($plural, ";")) {
-    $plural = substr($plural, 7, strpos($plural, ";") - 7);
-  }
-  else {
-    return FALSE;
-  }
-
-  // Get PHP version of the plural formula
-  $plural = _locale_import_parse_arithmetic($plural);
-
-  if ($plural !== FALSE) {
-    return array($nplurals, $plural);
-  }
-  else {
-    drupal_set_message(t('The translation file %filepath contains an error: the plural formula could not be parsed.', array('%filepath' => $filepath)), 'error');
-    return FALSE;
-  }
-}
-
-/**
- * Parses and sanitizes an arithmetic formula into a PHP expression.
- *
- * While parsing, we ensure, that the operators have the right
- * precedence and associativity.
- *
- * @param $string
- *   A string containing the arithmetic formula.
- *
- * @return
- *   The PHP version of the formula.
- */
-function _locale_import_parse_arithmetic($string) {
-  // Operator precedence table
-  $precedence = array("(" => -1, ")" => -1, "?" => 1, ":" => 1, "||" => 3, "&&" => 4, "==" => 5, "!=" => 5, "<" => 6, ">" => 6, "<=" => 6, ">=" => 6, "+" => 7, "-" => 7, "*" => 8, "/" => 8, "%" => 8);
-  // Right associativity
-  $right_associativity = array("?" => 1, ":" => 1);
-
-  $tokens = _locale_import_tokenize_formula($string);
-
-  // Parse by converting into infix notation then back into postfix
-  // Operator stack - holds math operators and symbols
-  $operator_stack = array();
-  // Element Stack - holds data to be operated on
-  $element_stack = array();
-
-  foreach ($tokens as $token) {
-    $current_token = $token;
-
-    // Numbers and the $n variable are simply pushed into $element_stack
-    if (is_numeric($token)) {
-      $element_stack[] = $current_token;
-    }
-    elseif ($current_token == "n") {
-      $element_stack[] = '$n';
-    }
-    elseif ($current_token == "(") {
-      $operator_stack[] = $current_token;
-    }
-    elseif ($current_token == ")") {
-      $topop = array_pop($operator_stack);
-      while (isset($topop) && ($topop != "(")) {
-        $element_stack[] = $topop;
-        $topop = array_pop($operator_stack);
-      }
-    }
-    elseif (!empty($precedence[$current_token])) {
-      // If it's an operator, then pop from $operator_stack into $element_stack until the
-      // precedence in $operator_stack is less than current, then push into $operator_stack
-      $topop = array_pop($operator_stack);
-      while (isset($topop) && ($precedence[$topop] >= $precedence[$current_token]) && !(($precedence[$topop] == $precedence[$current_token]) && !empty($right_associativity[$topop]) && !empty($right_associativity[$current_token]))) {
-        $element_stack[] = $topop;
-        $topop = array_pop($operator_stack);
-      }
-      if ($topop) {
-        $operator_stack[] = $topop;   // Return element to top
-      }
-      $operator_stack[] = $current_token;      // Parentheses are not needed
-    }
-    else {
-      return FALSE;
-    }
-  }
-
-  // Flush operator stack
-  $topop = array_pop($operator_stack);
-  while ($topop != NULL) {
-    $element_stack[] = $topop;
-    $topop = array_pop($operator_stack);
-  }
-
-  // Now extract formula from stack
-  $previous_size = count($element_stack) + 1;
-  while (count($element_stack) < $previous_size) {
-    $previous_size = count($element_stack);
-    for ($i = 2; $i < count($element_stack); $i++) {
-      $op = $element_stack[$i];
-      if (!empty($precedence[$op])) {
-        $f = "";
-        if ($op == ":") {
-          $f = $element_stack[$i - 2] . "):" . $element_stack[$i - 1] . ")";
-        }
-        elseif ($op == "?") {
-          $f = "(" . $element_stack[$i - 2] . "?(" . $element_stack[$i - 1];
-        }
-        else {
-          $f = "(" . $element_stack[$i - 2] . $op . $element_stack[$i - 1] . ")";
-        }
-        array_splice($element_stack, $i - 2, 3, $f);
-        break;
-      }
-    }
-  }
-
-  // If only one element is left, the number of operators is appropriate
-  if (count($element_stack) == 1) {
-    return $element_stack[0];
-  }
-  else {
-    return FALSE;
-  }
-}
-
-/**
- * Provides backward-compatible formula parsing for token_get_all().
- *
- * @param $string
- *   A string containing the arithmetic formula.
- *
- * @return
- *   The PHP version of the formula.
- */
-function _locale_import_tokenize_formula($formula) {
-  $formula = str_replace(" ", "", $formula);
-  $tokens = array();
-  for ($i = 0; $i < strlen($formula); $i++) {
-    if (is_numeric($formula[$i])) {
-      $num = $formula[$i];
-      $j = $i + 1;
-      while ($j < strlen($formula) && is_numeric($formula[$j])) {
-        $num .= $formula[$j];
-        $j++;
-      }
-      $i = $j - 1;
-      $tokens[] = $num;
-    }
-    elseif ($pos = strpos(" =<>!&|", $formula[$i])) { // We won't have a space
-      $next = $formula[$i + 1];
-      switch ($pos) {
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-          if ($next == '=') {
-            $tokens[] = $formula[$i] . '=';
-            $i++;
-          }
-          else {
-            $tokens[] = $formula[$i];
-          }
-          break;
-        case 5:
-          if ($next == '&') {
-            $tokens[] = '&&';
-            $i++;
-          }
-          else {
-            $tokens[] = $formula[$i];
-          }
-          break;
-        case 6:
-          if ($next == '|') {
-            $tokens[] = '||';
-            $i++;
-          }
-          else {
-            $tokens[] = $formula[$i];
-          }
-          break;
-      }
-    }
-    else {
-      $tokens[] = $formula[$i];
-    }
-  }
-  return $tokens;
 }
 
 /**
@@ -926,9 +750,9 @@ function _locale_export_get_strings($language = NULL, $options = array()) {
   $strings = array();
   foreach ($result as $child) {
     $strings[$child->lid] = array(
-      'comment'     => $child->location,
-      'source'      => $child->source,
-      'context'     => $child->context,
+      'comment' => $child->location,
+      'source' => $child->source,
+      'context' => $child->context,
       'translation' => isset($child->translation) ? $child->translation : '',
     );
   }
