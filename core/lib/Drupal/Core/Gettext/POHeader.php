@@ -49,8 +49,14 @@ class POHeader {
   private $_authors;
   private $_po_date;
 
+  /**
+   * Creates a POHeader with default values set.
+   *
+   * @param type $langcode
+   */
   public function __construct($langcode = NULL) {
     $this->_langcode = $langcode;
+    $this->setDefaults();
   }
 
   static public function mapping() {
@@ -114,22 +120,26 @@ class POHeader {
    * @param type $header
    */
   public function setFromString($header) {
-    $header_parsed = $this->_locale_import_parse_header($header);
+    $values = $this->_locale_import_parse_header($header);
 
-    $mapping = self::mapping();
-    foreach ($mapping as $key => $var) {
-      if (isset($header_parsed[$key])) {
-        $this->{$var} = $header_parsed[$key];
-      }
-    }
+    $this->setDefaults($values);
   }
 
-  public function setDefaults($values) {
+  /**
+   * TODO: compare with Symfony::setDefaults()
+   *
+   * @param type $values
+   */
+  public function setDefaults($values = array()) {
     $defaults = array(
       'POT-Creation-Date' => date("Y-m-d H:iO"),
       'Plural-Forms' => 'nplurals=2; plural=(n > 1);',
     );
-    $values += $defaults;
+    foreach ($defaults as $key => $value) {
+      if (empty($values[$key])) {
+        $values[$key] = $value;
+      }
+    }
     $mapping = self::mapping();
     foreach ($mapping as $key => $var) {
       if (isset($values[$key])) {

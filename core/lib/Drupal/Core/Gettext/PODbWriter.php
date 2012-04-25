@@ -124,9 +124,17 @@ class PODbWriter implements PoWriterInterface, BatchStateInterface {
   function setHeader(POHeader $header) {
     $this->_header = $header;
     $locale_plurals = variable_get('locale_translation_plurals', array());
+    // Check for options
     $options = $this->getOptions();
+    if (empty($options)) {
+      throw new Exception("Options should be set before assigning a POHeader");
+    }
     $overwrite_options = $options['overwrite_options'];
+    // Check for langcode
     $lang = $this->_langcode;
+    if (empty($lang)) {
+      throw new Exception("Langcode should be set before assigning a POHeader");
+    }
     if (array_sum($overwrite_options) || empty($locale_plurals[$lang]['plurals'])) {
       // Get and store the plural formula if available.
       $plural = $header->getPlural();
@@ -142,6 +150,7 @@ class PODbWriter implements PoWriterInterface, BatchStateInterface {
         variable_set('locale_translation_plurals', $locale_plurals);
       }
     }
+    drupal_set_message(print_r($locale_plurals, TRUE));
   }
 
   function writeItem(POItem $item) {

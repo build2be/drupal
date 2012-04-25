@@ -998,6 +998,11 @@ class LocaleImportFunctionalTest extends DrupalWebTestCase {
 
     // The import should have updated 2 strings.
     $this->assertRaw(t('The translation was successfully imported. There are %number newly created translated strings, %update strings were updated and %delete strings were removed.', array('%number' => 0, '%update' => 2, '%delete' => 0)), t('The translation file was successfully imported.'));
+
+    // This import should have changed number of plural forms.
+    $locale_plurals = variable_get('locale_translation_plurals', array());
+    $this->assert($locale_plurals['fr']['plurals'] == 3, t('Plural numbers changed.'));
+
     // Ensure string was overwritten.
     $search = array(
       'string' => 'Montag',
@@ -1006,9 +1011,6 @@ class LocaleImportFunctionalTest extends DrupalWebTestCase {
     );
     $this->drupalPost('admin/config/regional/translate/translate', $search, t('Filter'));
     $this->assertNoText(t('No strings available.'), t('String overwritten by imported string.'));
-    // This import should have changed number of plural forms.
-    $locale_plurals = variable_get('locale_translation_plurals', array());
-    $this->assert($locale_plurals['fr']['plurals'] == 3, t('Plural numbers changed.'));
 
     // Importing a .po file and mark its strings as customized strings.
     $this->importPoFile($this->getCustomPoFile(), array(

@@ -288,9 +288,12 @@ function locale_translate_batch_build($files, $finish_feedback = FALSE) {
 /**
  * Perform interface translation import as a batch step.
  *
+ * The given filepath is matched against ending with '{langcode}.po'. When
+ * matched the filepath is added to batch context.
+ *
  * @param $filepath
  *   Path to a file to import.
- * @param $results
+ * @param $context
  *   Contains a list of files imported.
  */
 function locale_translate_batch_import($filepath, &$context) {
@@ -298,6 +301,8 @@ function locale_translate_batch_import($filepath, &$context) {
   // we can extract the language code to use for the import from the end.
   if (preg_match('!(/|\.)([^\./]+)\.po$!', $filepath, $langcode)) {
     $file = (object) array('filename' => drupal_basename($filepath), 'uri' => $filepath);
+    // We need only the last match
+    $langcode = array_pop($langcode);
     _locale_import_po($file, $langcode, array(), LOCALE_NOT_CUSTOMIZED, TRUE);
     $context['results'][] = $filepath;
   }

@@ -18,7 +18,14 @@ namespace Drupal\Core\Gettext;
  */
 class POItem {
 
-  public $context;
+  /**
+   * The context this translation belongs to.
+   *
+   * The default context should be an empty string
+   * @see POMemoryWriter.writeItem()
+   * @var string
+   */
+  public $context = '';
   public $source;
   public $this;
   public $plural;

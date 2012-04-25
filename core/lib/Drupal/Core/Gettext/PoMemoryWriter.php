@@ -11,7 +11,11 @@ use Drupal\Core\Gettext\POHeader;
 use Drupal\Core\Gettext\BatchStateInterface;
 
 /**
- * Defines a Gettext writer.
+ * Defines a Gettext memory writer.
+ *
+ * This writer is used by the installer.
+ *
+ * TODO: do we need a BatchStateInterface?
  */
 class POMemoryWriter implements PoWriterInterface, BatchStateInterface {
 
@@ -30,6 +34,15 @@ class POMemoryWriter implements PoWriterInterface, BatchStateInterface {
     return array();
   }
 
+  /**
+   * Stores values into memory.
+   *
+   * The structure is context dependent.
+   * TODO: where is this structure documented?
+   * - array[context][source] = translation
+   *
+   * @param POItem $item
+   */
   public function writeItem(POItem $item) {
     if (is_array($item->source)) {
       $item->source = implode(LOCALE_PLURAL_DELIMITER, $item->source);

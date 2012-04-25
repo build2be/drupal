@@ -92,12 +92,14 @@ function _locale_import_po($file, $langcode, $overwrite_options, $customized = L
 
   $writer = new PODbWriter();
   $writer->setLangcode($langcode);
-  $writer->setHeader($header);
   $options = array(
     'overwrite_options' => $overwrite_options,
     'customized' => $customized,
   );
+  // It's vital options are set first.
   $writer->setOptions($options);
+  // TODO: is this a design problem?
+  $writer->setHeader($header);
 
   try {
     // TODO: make sure exception occurs
