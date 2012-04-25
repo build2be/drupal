@@ -79,7 +79,10 @@ function gettext_struct($langcode = 'nl') {
   return $result;
 }
 
-function testWriter() {
+function testWriter($uri = '') {
+  if (empty($uri)) {
+    $uri = getPublicUri(__FUNCTION__, $langcode);
+  }
   logLine(__FUNCTION__);
   $po = gettext_struct();
   $langcode = $po['langcode'];
@@ -89,12 +92,13 @@ function testWriter() {
 
   $writer->setLangcode($langcode);
   $writer->setHeader(new POHeader($langcode));
-  $writer->setURI(getPublicUri(__FUNCTION__, $langcode));
+  $writer->setURI($uri);
   $writer->open();
   foreach($items as $item) {
     $writer->writeItem($item);
   }
   $writer->close();
+  return $uri;
 }
 
 function testBatchStreamManager() {
@@ -181,7 +185,8 @@ function testHeader() {
 
 function testFileToDb() {
   logLine(__FUNCTION__, '=');
-  $uri = 'public://test.po.txt';
+  $uri = getPublicUri(__FUNCTION__, 'nl');
+  testWriter($uri);
   logLine("Reading : $uri");
   logLine("File contents first 500 bytes");
   $contents = file_get_contents($uri);
@@ -190,12 +195,15 @@ function testFileToDb() {
   logLine("POFileReader");
   $reader = new PoFileReader();
   $reader->setURI($uri);
-  printItem($reader->getHeader());
+  $reader->open();
+  $header = $reader->getHeader();
+  printItem($header);
 
   $langcode = 'ca';
   logLine("PODbWriter");
   $writer = new PODbWriter();
   $writer->setLangcode($langcode);
+  $writer->setHeader($header);
 
   $i = 0;
   while (($item = $reader->readItem()) && $i < 4) {
@@ -609,4 +617,4 @@ function testT() {
 
 //testT();
 
-remoteToPublic('af');
+testFileToDb();
