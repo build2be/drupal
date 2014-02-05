@@ -296,6 +296,11 @@ class DbUpdateController extends ControllerBase {
     // Warn the user if any updates were incompatible.
     if ($incompatible_updates_exist) {
       drupal_set_message($this->t('Some of the pending updates cannot be applied because their dependencies were not met.'), 'warning');
+      foreach ($updates as $module => $update) {
+        if ($update['warning']) {
+          drupal_set_message($update['warning'], 'warning');
+        }
+      }
     }
 
     // If there are entity definition updates, display their summary.
