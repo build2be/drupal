@@ -5,6 +5,7 @@
  * RESTful web services module.
  */
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
@@ -62,5 +63,5 @@ function rest_theme() {
 }
 
 function template_preprocess_rest_documentation($variables) {
-  $variables['field_description'] = check_plain($variables['field_description']);
+  $variables['field_description'] = String::checkPlain($variables['field_description']);
 }
