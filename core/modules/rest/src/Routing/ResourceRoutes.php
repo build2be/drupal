@@ -9,16 +9,21 @@ namespace Drupal\rest\Routing;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Routing\RouteBuildEvent;
 use Drupal\Core\Routing\RouteSubscriberBase;
+use Drupal\Core\Routing\RoutingEvents;
 use Drupal\rest\Plugin\Type\ResourcePluginManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
+
 
 /**
  * Subscriber for REST-style routes.
  */
-class ResourceRoutes extends RouteSubscriberBase{
+class ResourceRoutes extends RouteSubscriberBase {
 
   /**
    * The plugin manager for REST plugins.
@@ -66,7 +71,7 @@ class ResourceRoutes extends RouteSubscriberBase{
         $method = $route->getRequirement('_method');
         // Only expose routes where the method is enabled in the configuration.
         if ($method && isset($enabled_methods[$method])) {
-          $route->setRequirement('_access_rest_csrf',  'TRUE');
+          $route->setRequirement('_access_rest_csrf', 'TRUE');
 
           // Check that authentication providers are defined.
           if (empty($enabled_methods[$method]['supported_auth']) || !is_array($enabled_methods[$method]['supported_auth'])) {
@@ -110,20 +115,30 @@ class ResourceRoutes extends RouteSubscriberBase{
         if (in_array($entity_type, array('comment', 'block'))) {
           continue;
         }
+        /**
+         * @var $entity \Drupal\Core\Entity\EntityInterface
+         */
         $entity = entity_create($entity_type, array('type' => $bundle_name));
-
-        $fields = $entity->getPropertyDefinitions();
-        foreach ($fields as $field_name => $field_definition) {
-          if ($field_definition['type'] == 'entity_reference_field') {
-            $route = new Route("/rest/relations/$entity_type/$bundle_name/$field_name", array(
-              '_controller' => 'Drupal\rest\Controller::relation',
-              'field_name' => $field_name,
-              'field_definition' => $field_definition,
-            ), array(
-              '_method' => 'GET',
-              '_access' => 'TRUE',
-            ));
-            $collection->add("rest.relation.$entity_type.$bundle_name.$field_name", $route);
+        if ($entity instanceof ContentEntityBase) {
+          /**
+           * @var $fields \Drupal\Core\Field\FieldDefinitionInterface[]
+           */
+          $fields = $entity->getFieldDefinitions();
+          /**
+           * @var $field_definition \Drupal\Core\Field\FieldDefinitionInterface
+           */
+          foreach ($fields as $field_name => $field_definition) {
+            if ($field_definition->getType() == 'entity_reference_field') {
+              $route = new Route("/rest/relations/$entity_type/$bundle_name/$field_name", array(
+                '_controller' => 'Drupal\rest\Controller::relation',
+                'field_name' => $field_name,
+                'field_definition' => $field_definition,
+              ), array(
+                '_method' => 'GET',
+                '_access' => 'TRUE',
+              ));
+              $collection->add("rest.relation.$entity_type.$bundle_name.$field_name", $route);
+            }
           }
         }
       }
