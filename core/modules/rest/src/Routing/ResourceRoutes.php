@@ -121,6 +121,8 @@ class ResourceRoutes extends RouteSubscriberBase {
   }
 
   public function relationRoutes(RouteBuildEvent $event) {
+    // TODO: Missing bundle for entity type contact_message
+    return;
     $collection = $event->getRouteCollection();
 
     $link_field_types = array(
@@ -186,8 +188,15 @@ class ResourceRoutes extends RouteSubscriberBase {
    * Implements EventSubscriberInterface::getSubscribedEvents().
    */
   static function getSubscribedEvents() {
+    parent::getSubscribedEvents();
+    $events[RoutingEvents::ALTER] = 'onAlterRoutes';
+
+    // TODO fix method resourceRoutes
     $events[RoutingEvents::DYNAMIC][] = array('resourceRoutes');
-    $events[RoutingEvents::DYNAMIC][] = array('relationRoutes');
+    // TODO fix relationRoutes
+    //      drush cache-rebuild generated
+    //      Missing bundle for entity type contact_message
+    //$events[RoutingEvents::DYNAMIC][] = array('relationRoutes');
     $events[RoutingEvents::DYNAMIC][] = array('typeRoutes');
     return $events;
   }
