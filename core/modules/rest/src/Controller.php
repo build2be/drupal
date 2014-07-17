@@ -9,6 +9,7 @@ namespace Drupal\rest;
 
 use Drupal\Core\Entity\Field\Type\Field;
 use Symfony\Component\DependencyInjection\ContainerAware;
+use Symfony\Component\HttpFoundation\Response;
 
 class Controller extends ContainerAware {
 
@@ -68,6 +69,9 @@ class Controller extends ContainerAware {
       ),
     );
 
-    return $render;
+    // TODO : make this a proper content response somehow.
+    $response = new Response();
+    $response->setContent(drupal_render($render));
+    return $response;
   }
 }

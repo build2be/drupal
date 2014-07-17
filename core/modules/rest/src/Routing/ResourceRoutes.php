@@ -188,8 +188,7 @@ class ResourceRoutes extends RouteSubscriberBase {
    * Implements EventSubscriberInterface::getSubscribedEvents().
    */
   static function getSubscribedEvents() {
-    parent::getSubscribedEvents();
-    $events[RoutingEvents::ALTER] = 'onAlterRoutes';
+    $events = parent::getSubscribedEvents();
 
     // TODO fix method resourceRoutes
     $events[RoutingEvents::DYNAMIC][] = array('resourceRoutes');
