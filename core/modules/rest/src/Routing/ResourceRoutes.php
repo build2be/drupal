@@ -97,4 +97,66 @@ class ResourceRoutes extends RouteSubscriberBase{
     }
   }
 
+  public function relationRoutes(RouteBuildEvent $event) {
+    $collection = $event->getRouteCollection();
+
+    $link_field_types = array(
+      'entity_reference',
+      'taxonomy_term_reference',
+    );
+
+    foreach (entity_get_bundles() as $entity_type => $bundles) {
+      foreach ($bundles as $bundle_name => $bundle) {
+        if (in_array($entity_type, array('comment', 'block'))) {
+          continue;
+        }
+        $entity = entity_create($entity_type, array('type' => $bundle_name));
+
+        $fields = $entity->getPropertyDefinitions();
+        foreach ($fields as $field_name => $field_definition) {
+          if ($field_definition['type'] == 'entity_reference_field') {
+            $route = new Route("/rest/relations/$entity_type/$bundle_name/$field_name", array(
+              '_controller' => 'Drupal\rest\Controller::relation',
+              'field_name' => $field_name,
+              'field_definition' => $field_definition,
+            ), array(
+              '_method' => 'GET',
+              '_access' => 'TRUE',
+            ));
+            $collection->add("rest.relation.$entity_type.$bundle_name.$field_name", $route);
+          }
+        }
+      }
+    }
+  }
+
+  public function typeRoutes(RouteBuildEvent $event) {
+    $collection = $event->getRouteCollection();
+
+    // @todo Change this to only expose info for REST enabled entity types.
+    foreach (entity_get_bundles() as $entity_type => $bundles) {
+      foreach ($bundles as $bundle_name => $bundle) {
+        $route = new Route("/rest/types/$entity_type/$bundle_name", array(
+          '_controller' => 'Drupal\rest\Controller::type',
+          'entity_type' => $entity_type,
+          'bundle' => $bundle_name,
+        ), array(
+          '_method' => 'GET',
+          '_access' => 'TRUE',
+        ));
+        $collection->add("rest.type.$entity_type.$bundle_name", $route);
+      }
+    }
+  }
+
+  /**
+   * Implements EventSubscriberInterface::getSubscribedEvents().
+   */
+  static function getSubscribedEvents() {
+    $events[RoutingEvents::DYNAMIC][] = array('resourceRoutes');
+    $events[RoutingEvents::DYNAMIC][] = array('relationRoutes');
+    $events[RoutingEvents::DYNAMIC][] = array('typeRoutes');
+    return $events;
+  }
+
 }
