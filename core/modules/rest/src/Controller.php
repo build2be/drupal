@@ -38,7 +38,8 @@ class Controller extends ContainerAware {
   }
 
   public function type($entity_type, $bundle) {
-    drupal_set_title($entity_type . ': ' . $bundle);
+    // TODO: fix for CR https://www.drupal.org/node/2067859
+    //drupal_set_title($entity_type . ': ' . $bundle);
 
     $required = array();
     $optional = array();
