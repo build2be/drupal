@@ -43,3 +43,24 @@ function rest_help($route_name, RouteMatchInterface $route_match) {
       return $output;
   }
 }
+
+
+/**
+ * Implements hook_theme().
+ */
+function rest_theme() {
+   return array(
+      'rest_documentation' => array(
+        'variables' => array('field_description' => NULL, 'methods' => array()),
+        'template' => 'rest-documentation',
+     ),
+    'rest_documentation_section' => array(
+      'variables' => array('method' => NULL, 'headers' => NULL, 'body' => NULL),
+      'template' => 'rest-documentation-section',
+    ),
+  );
+}
+
+function template_preprocess_rest_documentation($variables) {
+  $variables['field_description'] = check_plain($variables['field_description']);
+}
