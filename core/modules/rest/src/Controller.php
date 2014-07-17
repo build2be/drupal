@@ -14,11 +14,8 @@ use Symfony\Component\HttpFoundation\Response;
 class Controller extends ContainerAware {
 
   public function relation($field_name, $field_definition) {
-    drupal_set_title($field_name);
-
-    $target_type = $field_definition['settings']['target_type'];
-
-    $target_entity = entity_create($target_type, array());
+    // TODO fix for drupal_set_title
+    // drupal_set_title($field_name);
 
     $render['#theme'] = 'rest_documentation';
     $render['#field_description'] = $field_definition['description'];
@@ -35,7 +32,10 @@ class Controller extends ContainerAware {
       // @todo Add required and optional fields here.
       '#body' => array(),
     );
-    return $render;
+    // TODO : make this a proper content response somehow.
+    $response = new Response();
+    $response->setContent(drupal_render($render));
+    return $response;
   }
 
   public function type($entity_type, $bundle) {
