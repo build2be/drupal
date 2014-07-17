@@ -1,0 +1,258 @@
+diff --git a/core/modules/rest/lib/Drupal/rest/Controller.php b/core/modules/rest/lib/Drupal/rest/Controller.php
+new file mode 100644
+index 0000000..32f1fe3
+--- /dev/null
++++ b/core/modules/rest/lib/Drupal/rest/Controller.php
+@@ -0,0 +1,72 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\rest\Controller.
++ */
++
++namespace Drupal\rest;
++
++use Drupal\Core\Entity\Field\Type\Field;
++use Symfony\Component\DependencyInjection\ContainerAware;
++
++class Controller extends ContainerAware {
++
++  public function relation($field_name, $field_definition) {
++    drupal_set_title($field_name);
++
++    $target_type = $field_definition['settings']['target_type'];
++
++    $target_entity = entity_create($target_type, array());
++
++    $render['#theme'] = 'rest_documentation';
++    $render['#field_description'] = $field_definition['description'];
++    $render['#methods']['get'] = array(
++      '#theme' => 'rest_documentation_section',
++      '#method' => 'GET',
++      '#headers' => array(
++        '#theme' => 'item_list',
++        '#title' => t('HTTP Headers'),
++        '#items' => array(
++          'Link: &lt;http://drupal.org/rest&gt;; rel="profile"'
++        ),
++      ),
++      // @todo Add required and optional fields here.
++      '#body' => array(),
++    );
++    return $render;
++  }
++
++  public function type($entity_type, $bundle) {
++    drupal_set_title($entity_type . ': ' . $bundle);
++
++    $required = array();
++    $optional = array();
++
++    $entity = entity_create($entity_type, array('type' => $bundle));
++    foreach ($entity->getProperties() as $field) {
++      $definition = $field->getItemDefinition();
++      if (isset($definition['required'])) {
++        $required[] = $field->getName();
++      }
++      else {
++        $optional[] = $field->getName();
++      }
++    }
++
++    $render = array(
++      array(
++        '#theme' => 'item_list',
++        '#title' => t('Required fields'),
++        '#items' => $required,
++      ),
++      array(
++        '#theme' => 'item_list',
++        '#title' => t('Optional fields'),
++        '#items' => $optional,
++      ),
++    );
++
++    return $render;
++  }
++}
+diff --git a/core/modules/rest/lib/Drupal/rest/EventSubscriber/RouteSubscriber.php b/core/modules/rest/lib/Drupal/rest/EventSubscriber/RouteSubscriber.php
+index d4711e0..35ce1d3 100644
+--- a/core/modules/rest/lib/Drupal/rest/EventSubscriber/RouteSubscriber.php
++++ b/core/modules/rest/lib/Drupal/rest/EventSubscriber/RouteSubscriber.php
+@@ -7,11 +7,13 @@
+ namespace Drupal\rest\EventSubscriber;
+
+ use Drupal\Core\Config\ConfigFactory;
++use Drupal\Core\Entity\EntityNG;
+ use Drupal\Core\Routing\RouteBuildEvent;
+ use Drupal\Core\Routing\RoutingEvents;
+ use Drupal\rest\Plugin\Type\ResourcePluginManager;
+
+ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
++use Symfony\Component\Routing\Route;
+
+ /**
+  * Subscriber for REST-style routes.
+@@ -51,7 +53,7 @@ public function __construct(ResourcePluginManager $manager, ConfigFactory $confi
+    * @param \Drupal\Core\Routing\RouteBuildEvent $event
+    *   The route building event.
+    */
+-  public function dynamicRoutes(RouteBuildEvent $event) {
++  public function resourceRoutes(RouteBuildEvent $event) {
+
+     $collection = $event->getRouteCollection();
+
+@@ -62,17 +64,71 @@ public function dynamicRoutes(RouteBuildEvent $event) {
+
+         foreach ($plugin->routes() as $name => $route) {
+           $route->setRequirement('_access_rest_csrf',  'TRUE');
+-          $collection->add("rest.$name", $route);
++          $collection->add("rest.resource.$name", $route);
+         }
+       }
+     }
+   }
+
++  public function relationRoutes(RouteBuildEvent $event) {
++    $collection = $event->getRouteCollection();
++
++    $link_field_types = array(
++      'entity_reference',
++      'taxonomy_term_reference',
++    );
++
++    foreach (entity_get_bundles() as $entity_type => $bundles) {
++      foreach ($bundles as $bundle_name => $bundle) {
++        if (in_array($entity_type, array('comment', 'block'))) {
++          continue;
++        }
++        $entity = entity_create($entity_type, array('type' => $bundle_name));
++
++        $fields = $entity->getPropertyDefinitions();
++        foreach ($fields as $field_name => $field_definition) {
++          if ($field_definition['type'] == 'entity_reference_field') {
++            $route = new Route("/rest/relations/$entity_type/$bundle_name/$field_name", array(
++              '_controller' => 'Drupal\rest\Controller::relation',
++              'field_name' => $field_name,
++              'field_definition' => $field_definition,
++            ), array(
++              '_method' => 'GET',
++              '_access' => 'TRUE',
++            ));
++            $collection->add("rest.relation.$entity_type.$bundle_name.$field_name", $route);
++          }
++        }
++      }
++    }
++  }
++
++  public function typeRoutes(RouteBuildEvent $event) {
++    $collection = $event->getRouteCollection();
++
++    // @todo Change this to only expose info for REST enabled entity types.
++    foreach (entity_get_bundles() as $entity_type => $bundles) {
++      foreach ($bundles as $bundle_name => $bundle) {
++        $route = new Route("/rest/types/$entity_type/$bundle_name", array(
++          '_controller' => 'Drupal\rest\Controller::type',
++          'entity_type' => $entity_type,
++          'bundle' => $bundle_name,
++        ), array(
++          '_method' => 'GET',
++          '_access' => 'TRUE',
++        ));
++        $collection->add("rest.type.$entity_type.$bundle_name", $route);
++      }
++    }
++  }
++
+   /**
+    * Implements EventSubscriberInterface::getSubscribedEvents().
+    */
+   static function getSubscribedEvents() {
+-    $events[RoutingEvents::DYNAMIC] = 'dynamicRoutes';
++    $events[RoutingEvents::DYNAMIC][] = array('resourceRoutes');
++    $events[RoutingEvents::DYNAMIC][] = array('relationRoutes');
++    $events[RoutingEvents::DYNAMIC][] = array('typeRoutes');
+     return $events;
+   }
+ }
+diff --git a/core/modules/rest/rest.module b/core/modules/rest/rest.module
+index 233db32..d329544 100644
+--- a/core/modules/rest/rest.module
++++ b/core/modules/rest/rest.module
+@@ -77,3 +77,24 @@ function rest_help($path, $arg) {
+       return $output;
+   }
+ }
++
++/**
++ * Implements hook_theme().
++ */
++function rest_theme() {
++  return array(
++    'rest_documentation' => array(
++      'variables' => array('field_description' => NULL, 'methods' => array()),
++      'template' => 'rest-documentation',
++    ),
++    'rest_documentation_section' => array(
++      'variables' => array('method' => NULL, 'headers' => NULL, 'body' => NULL),
++      'template' => 'rest-documentation-section',
++    ),
++  );
++}
++
++function template_preprocess_rest_documentation($variables) {
++  $variables['field_description'] = check_plain($variables['field_description']);
++}
++
+diff --git a/core/modules/rest/templates/rest-documentation-section.tpl.php b/core/modules/rest/templates/rest-documentation-section.tpl.php
+new file mode 100644
+index 0000000..dc76a2b
+--- /dev/null
++++ b/core/modules/rest/templates/rest-documentation-section.tpl.php
+@@ -0,0 +1,20 @@
++<?php
++
++/**
++ * @file
++ * Default theme implementation to display rest documentation section.
++ *
++ * @see template_preprocess()
++ * @see template_preprocess_rest_documentation()
++ * @see template_process()
++ *
++ * @ingroup themeable
++ */
++?>
++<section class="clearfix">
++
++  <h2><?php print $method ?></h2>
++  <?php if ($headers): ?>
++    <?php print render($headers) ?>
++  <?php endif; ?>
++</section>
+diff --git a/core/modules/rest/templates/rest-documentation.tpl.php b/core/modules/rest/templates/rest-documentation.tpl.php
+new file mode 100644
+index 0000000..0a37048
+--- /dev/null
++++ b/core/modules/rest/templates/rest-documentation.tpl.php
+@@ -0,0 +1,18 @@
++<?php
++
++/**
++ * @file
++ * Default theme implementation to display rest documentation.
++ *
++ * @see template_preprocess()
++ * @see template_preprocess_rest_documentation()
++ * @see template_process()
++ *
++ * @ingroup themeable
++ */
++?>
++<div class="clearfix">
++
++  <?php print $field_description ?>
++  <?php print render($methods) ?>
++</div>
