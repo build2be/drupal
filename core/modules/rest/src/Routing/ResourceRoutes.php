@@ -103,8 +103,6 @@ class ResourceRoutes extends RouteSubscriberBase {
   }
 
   public function relationRoutes(RouteBuildEvent $event) {
-    // TODO: Missing bundle for entity type contact_message
-    return;
     $collection = $event->getRouteCollection();
 
     $link_field_types = array(
@@ -113,8 +111,24 @@ class ResourceRoutes extends RouteSubscriberBase {
     );
 
     foreach (entity_get_bundles() as $entity_type => $bundles) {
+      // TODO fix relationRoutes
+      //      drush cache-rebuild generated
+
+      $skip = array(
+        'comment',                // Missing bundle for entity type comment
+        //'block',
+        'contact_message',        // Missing bundle for entity type contact_message
+        'breakpoint',             // Attempt to create an unnamed breakpoint.
+        'breakpoint_group',       // Attempt to create an unnamed breakpoint group.
+        'editor',                 // The "" plugin does not exist.
+        'entity_form_display',    // Missing required properties for an EntityDisplay entity.'
+        'entity_view_display',    // Missing required properties for an EntityDisplay entity.'
+        'field_config',           // Attempt to create an unnamed field.'
+        'field_instance_config',  // Attempt to create an instance of a field without a field_name.'
+        'taxonomy_term',          // Missing bundle for entity type taxonomy_term
+      );
       foreach ($bundles as $bundle_name => $bundle) {
-        if (in_array($entity_type, array('comment', 'block'))) {
+        if (in_array($entity_type, $skip)) {
           continue;
         }
         /**
@@ -130,7 +144,9 @@ class ResourceRoutes extends RouteSubscriberBase {
            * @var $field_definition \Drupal\Core\Field\FieldDefinitionInterface
            */
           foreach ($fields as $field_name => $field_definition) {
-            if ($field_definition->getType() == 'entity_reference_field') {
+            $field_type = $field_definition->getType();
+            if (in_array($field_type, $link_field_types)) {
+              // echo "$entity_type:$bundle_name:$field_name is a : " . $field_type . PHP_EOL;
               $route = new Route("/rest/relations/$entity_type/$bundle_name/$field_name", array(
                 '_controller' => 'Drupal\rest\Controller::relation',
                 'field_name' => $field_name,
@@ -172,12 +188,7 @@ class ResourceRoutes extends RouteSubscriberBase {
   static function getSubscribedEvents() {
     $events = parent::getSubscribedEvents();
 
-    // TODO fix method resourceRoutes
-    $events[RoutingEvents::DYNAMIC][] = array('resourceRoutes');
-    // TODO fix relationRoutes
-    //      drush cache-rebuild generated
-    //      Missing bundle for entity type contact_message
-    //$events[RoutingEvents::DYNAMIC][] = array('relationRoutes');
+    $events[RoutingEvents::DYNAMIC][] = array('relationRoutes');
     $events[RoutingEvents::DYNAMIC][] = array('typeRoutes');
     return $events;
   }
