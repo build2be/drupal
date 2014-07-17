@@ -102,6 +102,24 @@ class ResourceRoutes extends RouteSubscriberBase {
     }
   }
 
+  /**
+   * @param RouteBuildEvent $event
+   */
+  public function resourceRoutes(RouteBuildEvent $event) {
+    $collection = $event->getRouteCollection();
+
+    $resources = $this->manager->getDefinitions();
+    foreach ($resources as $id => $resource) {
+      $plugin = $this->manager->getInstance(array('id' => $id));
+
+      foreach ($plugin->routes() as $name => $route) {
+        $route->setRequirement('_access_rest_csrf', 'FALSE');
+        $collection->add("rest.$name", $route);
+        $collection->add("rest.resource.$name", $route);
+      }
+    }
+  }
+
   public function relationRoutes(RouteBuildEvent $event) {
     $collection = $event->getRouteCollection();
 
