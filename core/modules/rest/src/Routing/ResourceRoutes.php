@@ -107,6 +107,8 @@ class ResourceRoutes extends RouteSubscriberBase {
   /**
    * Generate relational routes.
    *
+   * TODO: why do we generate routes for relations?
+   *
    * @param RouteBuildEvent $event
    */
   public function relationRoutes(RouteBuildEvent $event) {
@@ -116,54 +118,23 @@ class ResourceRoutes extends RouteSubscriberBase {
       'entity_reference',
       'taxonomy_term_reference',
     );
+    $fieldMap = \Drupal::entityManager()->getFieldMap();
 
-    foreach (entity_get_bundles() as $entity_type => $bundles) {
-      // TODO fix relationRoutes
-      //      drush cache-rebuild generated
-
-      $skip = array(
-        'comment',                // Missing bundle for entity type comment
-        //'block',
-        'contact_message',        // Missing bundle for entity type contact_message
-        'breakpoint',             // Attempt to create an unnamed breakpoint.
-        'breakpoint_group',       // Attempt to create an unnamed breakpoint group.
-        'editor',                 // The "" plugin does not exist.
-        'entity_form_display',    // Missing required properties for an EntityDisplay entity.'
-        'entity_view_display',    // Missing required properties for an EntityDisplay entity.'
-        'field_config',           // Attempt to create an unnamed field.'
-        'field_instance_config',  // Attempt to create an instance of a field without a field_name.'
-        'taxonomy_term',          // Missing bundle for entity type taxonomy_term
-      );
-      foreach ($bundles as $bundle_name => $bundle) {
-        if (in_array($entity_type, $skip)) {
-          continue;
-        }
-        /**
-         * @var $entity \Drupal\Core\Entity\EntityInterface
-         */
-        $entity = entity_create($entity_type, array('type' => $bundle_name));
-        if ($entity instanceof ContentEntityBase) {
-          /**
-           * @var $fields \Drupal\Core\Field\FieldDefinitionInterface[]
-           */
-          $fields = $entity->getFieldDefinitions();
-          /**
-           * @var $field_definition \Drupal\Core\Field\FieldDefinitionInterface
-           */
-          foreach ($fields as $field_name => $field_definition) {
-            $field_type = $field_definition->getType();
-            if (in_array($field_type, $link_field_types)) {
-              // echo "$entity_type:$bundle_name:$field_name is a : " . $field_type . PHP_EOL;
-              $route = new Route("/api/rest/relations/$entity_type/$bundle_name/$field_name", array(
-                '_content' => 'Drupal\rest\Controller::relation',
-                'field_name' => $field_name,
-                'field_definition' => $field_definition,
-              ), array(
-                '_method' => 'GET',
-                '_access' => 'TRUE',
-              ));
-              $collection->add("rest.relation.$entity_type.$bundle_name.$field_name", $route);
-            }
+    foreach ($fieldMap as $entity_type => $fields) {
+      foreach ($fields as $field_name => $field) {
+        if (in_array($field['type'], $link_field_types)) {
+          foreach ($field['bundles'] as $bundle) {
+            echo "$entity_type/$bundle/$field_name" . PHP_EOL;
+            $route = new Route("/api/rest/relations/$entity_type/$bundle/$field_name", array(
+              '_content' => 'Drupal\rest\Controller::relation',
+              'entity_type' => $entity_type,
+              'bundle' => $bundle,
+              'field_name' => $field_name,
+            ), array(
+              '_method' => 'GET',
+              '_access' => 'TRUE',
+            ));
+            $collection->add("rest.relation.$entity_type.$bundle.$field_name", $route);
           }
         }
       }
@@ -171,15 +142,14 @@ class ResourceRoutes extends RouteSubscriberBase {
   }
 
   /**
-   * Add all available EntityTypes to the routes.
+   * Add all supported EntityTypes to the routes.
    *
    * @param RouteBuildEvent $event
    */
   public function typeRoutes(RouteBuildEvent $event) {
     $collection = $event->getRouteCollection();
 
-    // @todo Change this to only expose info for REST enabled entity types.
-    foreach ($this->getRestEntities() as $entity_type => $bundles) {
+    foreach ($this->getRestBundles() as $entity_type => $bundles) {
       foreach ($bundles as $bundle_name => $bundle) {
         $route = new Route("/api/rest/types/$entity_type/$bundle_name", array(
           '_content' => 'Drupal\rest\Controller::type',
@@ -192,6 +162,15 @@ class ResourceRoutes extends RouteSubscriberBase {
         $collection->add("rest.type.$entity_type.$bundle_name", $route);
       }
     }
+  }
+
+  protected function getRestBundles() {
+    $bundles = \Drupal::entityManager()->getAllBundleInfo();
+
+    // TODO: Change this to only expose info for REST enabled entity types.
+    // TODO: filter out all ConfigEntities
+
+    return $bundles;
   }
 
   /**

@@ -9,16 +9,17 @@ namespace Drupal\rest;
 
 use Drupal\Core\Entity\Field\Type\Field;
 use Symfony\Component\DependencyInjection\ContainerAware;
-use Symfony\Component\HttpFoundation\Response;
 
 class Controller extends ContainerAware {
 
-  public function relation($field_name, $field_definition) {
+  public function relation($entity_type, $bundle, $field_name) {
     // TODO fix for drupal_set_title
     // drupal_set_title($field_name);
 
+    $fields = $this->getEntityManager()->getFieldDefinitions($entity_type, $bundle);
+    $field_definition = $fields[$field_name];
     $render['#theme'] = 'rest_documentation';
-    $render['#field_description'] = $field_definition['description'];
+    $render['#field_description'] = $field_definition->getDescription();
     $render['#methods']['get'] = array(
       '#theme' => 'rest_documentation_section',
       '#method' => 'GET',
