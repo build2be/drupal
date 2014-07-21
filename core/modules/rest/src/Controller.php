@@ -32,10 +32,7 @@ class Controller extends ContainerAware {
       // @todo Add required and optional fields here.
       '#body' => array(),
     );
-    // TODO : make this a proper content response somehow.
-    $response = new Response();
-    $response->setContent(drupal_render($render));
-    return $response;
+    return $render;
   }
 
   public function type($entity_type, $bundle) {
@@ -45,14 +42,39 @@ class Controller extends ContainerAware {
     $required = array();
     $optional = array();
 
-    $entity = entity_create($entity_type, array('type' => $bundle));
-    foreach ($entity->getProperties() as $field) {
-      $definition = $field->getItemDefinition();
-      if (isset($definition['required'])) {
-        $required[] = $field->getName();
+    $fields = $this->getEntityManager()->getFieldDefinitions($entity_type, $bundle);
+
+    // TODO: how to present the information?
+    //       Let's make a table per field
+    // TODO: SA what information is disclosed?
+    //       All settings are exposed
+    // TODO: how to check for field permissions?
+    /** @var \Drupal\Core\Field\FieldDefinitionInterface $field */
+    foreach ($fields as $id => $field) {
+      $items = array();
+      $items[] = "Type: " . $field->getType();
+      if ($field->getDescription()) {
+        $items[] = "Description: " . $field->getDescription();
       }
-      else {
-        $optional[] = $field->getName();
+      $items[] = "Data/Storage type: " . $field->getDataType();
+
+      $itemDefinition = $field->getItemDefinition();
+
+      // TODO: setting may contain array as value
+      $settings = $itemDefinition->getSettings();
+      foreach( $settings as $key => $value) {
+        $items[] = "$key: $value";
+      }
+
+      $value = array(
+        '#theme' => 'item_list',
+        '#title' => $field->getName(),
+        '#items' => $items,
+      );
+      if ($field->isRequired()) {
+        $required[] = $value;
+      } else {
+        $optional[] = $value;
       }
     }
 
@@ -68,10 +90,11 @@ class Controller extends ContainerAware {
         '#items' => $optional,
       ),
     );
-
-    // TODO : make this a proper content response somehow.
-    $response = new Response();
-    $response->setContent(drupal_render($render));
-    return $response;
+    return $render;
   }
+
+  protected function getEntityManager() {
+    return \Drupal::entityManager();
+  }
+
 }

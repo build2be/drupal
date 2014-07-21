@@ -8,8 +8,10 @@
 namespace Drupal\rest\Routing;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\Entity\ConfigEntityType;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Routing\RouteBuildEvent;
 use Drupal\Core\Routing\RouteSubscriberBase;
 use Drupal\Core\Routing\RoutingEvents;
@@ -102,6 +104,11 @@ class ResourceRoutes extends RouteSubscriberBase {
     }
   }
 
+  /**
+   * Generate relational routes.
+   *
+   * @param RouteBuildEvent $event
+   */
   public function relationRoutes(RouteBuildEvent $event) {
     $collection = $event->getRouteCollection();
 
@@ -147,8 +154,8 @@ class ResourceRoutes extends RouteSubscriberBase {
             $field_type = $field_definition->getType();
             if (in_array($field_type, $link_field_types)) {
               // echo "$entity_type:$bundle_name:$field_name is a : " . $field_type . PHP_EOL;
-              $route = new Route("/rest/relations/$entity_type/$bundle_name/$field_name", array(
-                '_controller' => 'Drupal\rest\Controller::relation',
+              $route = new Route("/api/rest/relations/$entity_type/$bundle_name/$field_name", array(
+                '_content' => 'Drupal\rest\Controller::relation',
                 'field_name' => $field_name,
                 'field_definition' => $field_definition,
               ), array(
@@ -163,14 +170,19 @@ class ResourceRoutes extends RouteSubscriberBase {
     }
   }
 
+  /**
+   * Add all available EntityTypes to the routes.
+   *
+   * @param RouteBuildEvent $event
+   */
   public function typeRoutes(RouteBuildEvent $event) {
     $collection = $event->getRouteCollection();
 
     // @todo Change this to only expose info for REST enabled entity types.
-    foreach (entity_get_bundles() as $entity_type => $bundles) {
+    foreach ($this->getRestEntities() as $entity_type => $bundles) {
       foreach ($bundles as $bundle_name => $bundle) {
-        $route = new Route("/rest/types/$entity_type/$bundle_name", array(
-          '_controller' => 'Drupal\rest\Controller::type',
+        $route = new Route("/api/rest/types/$entity_type/$bundle_name", array(
+          '_content' => 'Drupal\rest\Controller::type',
           'entity_type' => $entity_type,
           'bundle' => $bundle_name,
         ), array(
