@@ -4,3 +4,9 @@ rest.csrftoken:
     _controller: '\Drupal\rest\RequestHandler::csrfToken'
   requirements:
     _access: 'TRUE'
+rest.docs:
+  path: /docs/rest/api
+  defaults:
+    _content: 'Drupal\rest\Controller::apidocs'
+  requirements:
+    _access: 'TRUE'

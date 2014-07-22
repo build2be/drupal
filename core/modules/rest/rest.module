@@ -41,6 +41,8 @@ function rest_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dd>' . t('REST support for content items of the Node module is enabled by default, and support for other types of content entities can be enabled. To enable support, you can use a <a href="!config">process based on configuration editing</a> or the contributed <a href="!restui">Rest UI module</a>.', array('!config' => 'https://drupal.org/documentation/modules/rest', '!restui' => 'https://drupal.org/project/restui')) . '</dd>';
       $output .= '<dd>' . t('You will also need to grant anonymous users permission to perform each of the REST operations you want to be available, and set up authentication properly to authorize web requests.') . '</dd>';
       $output .= '</dl>';
+      $output .= '<h3>' . t('API Docs') . '</h3>';
+      $output .= '<p>' . t('The API documentation is viewable on') . ' <a href="/docs/rest/api">/docs/rest/api</a></p>';
       return $output;
   }
 }
@@ -59,6 +61,14 @@ function rest_theme() {
       'variables' => array('method' => NULL, 'headers' => NULL, 'body' => NULL),
       'template' => 'rest-documentation-section',
     ),
+    'rest_documentation_endpoints' => array(
+      'variables' => array('endpoints' => NULL),
+      'template' => 'rest-documentation-endpoints',
+    ),
+    'rest_documentation_type' => array(
+      'variables' => array('required' => NULL, 'optional' => NULL),
+      'template' => 'rest-documentation-type',
+    )
   );
 }
 

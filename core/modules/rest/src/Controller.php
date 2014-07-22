@@ -12,6 +12,23 @@ use Symfony\Component\DependencyInjection\ContainerAware;
 
 class Controller extends ContainerAware {
 
+  public function apidocs(){
+    $endpoints = array();
+    foreach ($this->getRestBundles() as $entity_type => $bundles) {
+      foreach ($bundles as $bundle_name => $bundle) {
+        $endpoints[] = array(
+          'name' => $entity_type . ' => ' . $bundle_name,
+          'href' => '/docs/rest/api/types/'. $entity_type . '/' . $bundle_name,
+        );
+      }
+    }
+
+    $render['#theme'] = 'rest_documentation_endpoints';
+    $render['#title'] = 'API Endpoints for REST';
+    $render['#endpoints'] = $endpoints;
+    return $render;
+  }
+
   public function relation($entity_type, $bundle, $field_name) {
     // TODO fix for drupal_set_title
     // drupal_set_title($field_name);
@@ -37,9 +54,6 @@ class Controller extends ContainerAware {
   }
 
   public function type($entity_type, $bundle) {
-    // TODO: fix for CR https://www.drupal.org/node/2067859
-    //drupal_set_title($entity_type . ': ' . $bundle);
-
     $required = array();
     $optional = array();
 
@@ -52,46 +66,45 @@ class Controller extends ContainerAware {
     // TODO: how to check for field permissions?
     /** @var \Drupal\Core\Field\FieldDefinitionInterface $field */
     foreach ($fields as $id => $field) {
-      $items = array();
-      $items[] = "Type: " . $field->getType();
+      $item = array();
+      $item['name'] = $field->getName();
+      $item['type'] = $field->getType();
       if ($field->getDescription()) {
-        $items[] = "Description: " . $field->getDescription();
+        $item['description'] = $field->getDescription();
       }
-      $items[] = "Data/Storage type: " . $field->getDataType();
+      $item['datatype'] = $field->getDataType();
 
       $itemDefinition = $field->getItemDefinition();
 
       // TODO: setting may contain array as value
       $settings = $itemDefinition->getSettings();
       foreach( $settings as $key => $value) {
-        $items[] = "$key: $value";
+        $item['extra'][] = array($key, $value);
       }
 
-      $value = array(
-        '#theme' => 'item_list',
-        '#title' => $field->getName(),
-        '#items' => $items,
-      );
       if ($field->isRequired()) {
-        $required[] = $value;
+        $required[] = $item;
       } else {
-        $optional[] = $value;
+        $optional[] = $item;
       }
     }
 
     $render = array(
-      array(
-        '#theme' => 'item_list',
-        '#title' => t('Required fields'),
-        '#items' => $required,
-      ),
-      array(
-        '#theme' => 'item_list',
-        '#title' => t('Optional fields'),
-        '#items' => $optional,
-      ),
+      '#theme' => 'rest_documentation_type',
+      '#title' => 'Fields for ' . $entity_type . '/' . $bundle,
+      '#required' => $required,
+      '#optional' => $optional,
     );
     return $render;
+  }
+
+  protected function getRestBundles() {
+    $bundles = \Drupal::entityManager()->getAllBundleInfo();
+
+    // TODO: Change this to only expose info for REST enabled entity types.
+    // TODO: filter out all ConfigEntities
+
+    return $bundles;
   }
 
   protected function getEntityManager() {

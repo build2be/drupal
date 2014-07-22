@@ -1,0 +1,17 @@
+<div class="clearfix">
+
+  <h2>Required fields</h2>
+
+  {% for item in required %}
+    <h3>{{ item.name }} <small>{{ item.type }}</small></h3>
+    <p>{{ item.description }}</p>
+  {% endfor %}
+
+  <h2>Optional fields</h2>
+
+  {% for item in optional %}
+    <h3>{{ item.name }} <small>{{ item.type }}</small></h3>
+    <p>{{ item.description }}</p>
+  {% endfor %}
+
+</div>

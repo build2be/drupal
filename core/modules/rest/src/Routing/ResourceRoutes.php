@@ -151,7 +151,7 @@ class ResourceRoutes extends RouteSubscriberBase {
 
     foreach ($this->getRestBundles() as $entity_type => $bundles) {
       foreach ($bundles as $bundle_name => $bundle) {
-        $route = new Route("/api/rest/types/$entity_type/$bundle_name", array(
+        $route = new Route("/docs/rest/api/types/$entity_type/$bundle_name", array(
           '_content' => 'Drupal\rest\Controller::type',
           'entity_type' => $entity_type,
           'bundle' => $bundle_name,
