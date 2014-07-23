@@ -114,6 +114,7 @@ class ResourceRoutes extends RouteSubscriberBase {
   public function relationRoutes(RouteBuildEvent $event) {
     $collection = $event->getRouteCollection();
 
+    // TODO: why filter out the non relation ones? Ie field_image is exposed through _links to ie HAL browser.
     $link_field_types = array(
       'entity_reference',
       'taxonomy_term_reference',
@@ -122,10 +123,11 @@ class ResourceRoutes extends RouteSubscriberBase {
 
     foreach ($fieldMap as $entity_type => $fields) {
       foreach ($fields as $field_name => $field) {
-        if (in_array($field['type'], $link_field_types)) {
+        // FIXME
+        //if (in_array($field['type'], $link_field_types)) {
           foreach ($field['bundles'] as $bundle) {
-            echo "$entity_type/$bundle/$field_name" . PHP_EOL;
-            $route = new Route("/api/rest/relations/$entity_type/$bundle/$field_name", array(
+            // TODO why use relation in link. This should be in */api/* path
+            $route = new Route("/rest/relation/$entity_type/$bundle/$field_name", array(
               '_content' => 'Drupal\rest\Controller::relation',
               'entity_type' => $entity_type,
               'bundle' => $bundle,
@@ -136,7 +138,7 @@ class ResourceRoutes extends RouteSubscriberBase {
             ));
             $collection->add("rest.relation.$entity_type.$bundle.$field_name", $route);
           }
-        }
+        //}
       }
     }
   }

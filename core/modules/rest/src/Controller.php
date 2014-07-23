@@ -12,102 +12,161 @@ use Symfony\Component\DependencyInjection\ContainerAware;
 
 class Controller extends ContainerAware {
 
-  public function apidocs(){
-    $endpoints = array();
-    foreach ($this->getRestBundles() as $entity_type => $bundles) {
-      foreach ($bundles as $bundle_name => $bundle) {
-        $endpoints[] = array(
-          'name' => $entity_type . ' => ' . $bundle_name,
-          'href' => '/docs/rest/api/types/'. $entity_type . '/' . $bundle_name,
-        );
+  // TODO use DiC
+  //      see getRestBundles()
+  //      see getEntityManager()
+
+  /**
+   * Renders the REST documentation.
+   *
+   * This is the start point for exploring the exposed rest entities.
+   *
+   * Only exposed entities are listed.
+   *
+   * @return array
+   */
+  public function docRoot() {
+    $config = \Drupal::config('rest.settings')->get('resources') ?: array();
+
+    $all_bundles = $this->getRestBundles();
+
+    $items = array();
+    foreach ($config as $id => $config) {
+      $item = array();
+      foreach ($config as $method => $settings) {
+        $supported_formats = join(', ', $settings['supported_formats']);
+        $supported_auth = join(", ", $settings['supported_auth']);
+        $item[] = t("Method %method using formats '%supported_formats' with authentication methods '%supported_auth'", array(
+          '%method' => $method,
+          '%supported_auth' => $supported_auth,
+          '%supported_formats' => $supported_formats
+        ));
       }
+
+      list(, $entity) = explode(":", $id);
+      $bundles = array_keys($all_bundles[$entity]);
+      $doc_refs = array();
+      foreach ($bundles as $bundle) {
+        $doc_refs[] = l($bundle, '/docs/rest/api/types/' . $entity . '/' . $bundle);
+      }
+      $items[] = array(
+        '#theme' => 'item_list',
+        '#title' => t("Resource %entity has documentation for !doc-urls", array(
+          '%entity' => $entity,
+          '!doc-urls' => join(', ', $doc_refs)
+        )),
+        '#items' => $item,
+      );
     }
 
-    $render['#theme'] = 'rest_documentation_endpoints';
-    $render['#title'] = 'API Endpoints for REST';
-    $render['#endpoints'] = $endpoints;
-    return $render;
-  }
-
-  public function relation($entity_type, $bundle, $field_name) {
-    // TODO fix for drupal_set_title
-    // drupal_set_title($field_name);
-
-    $fields = $this->getEntityManager()->getFieldDefinitions($entity_type, $bundle);
-    $field_definition = $fields[$field_name];
-    $render['#theme'] = 'rest_documentation';
-    $render['#field_description'] = $field_definition->getDescription();
-    $render['#methods']['get'] = array(
-      '#theme' => 'rest_documentation_section',
-      '#method' => 'GET',
-      '#headers' => array(
-        '#theme' => 'item_list',
-        '#title' => t('HTTP Headers'),
-        '#items' => array(
-          'Link: &lt;http://drupal.org/rest&gt;; rel="profile"'
-        ),
-      ),
-      // @todo Add required and optional fields here.
-      '#body' => array(),
+    $result = array(
+      '#theme' => 'item_list',
+      '#title' => t('Rest resources'),
+      '#items' => $items,
     );
-    return $render;
+
+    return $result;
   }
 
+  /**
+   * List all fields for given entity type and bundle.
+   *
+   * @param $entity_type
+   * @param $bundle
+   * @return array
+   */
   public function type($entity_type, $bundle) {
     $required = array();
     $optional = array();
 
     $fields = $this->getEntityManager()->getFieldDefinitions($entity_type, $bundle);
 
-    // TODO: how to present the information?
-    //       Let's make a table per field
-    // TODO: SA what information is disclosed?
-    //       All settings are exposed
-    // TODO: how to check for field permissions?
     /** @var \Drupal\Core\Field\FieldDefinitionInterface $field */
     foreach ($fields as $id => $field) {
-      $item = array();
-      $item['name'] = $field->getName();
-      $item['type'] = $field->getType();
-      if ($field->getDescription()) {
-        $item['description'] = $field->getDescription();
-      }
-      $item['datatype'] = $field->getDataType();
-
-      $itemDefinition = $field->getItemDefinition();
-
-      // TODO: setting may contain array as value
-      $settings = $itemDefinition->getSettings();
-      foreach( $settings as $key => $value) {
-        $item['extra'][] = array($key, $value);
-      }
+      $item = l($field->getName(), "rest/relation/$entity_type/$bundle/$id");
 
       if ($field->isRequired()) {
         $required[] = $item;
-      } else {
+      }
+      else {
         $optional[] = $item;
       }
     }
 
+    $requiredItems = array(
+      '#theme' => 'item_list',
+      '#title' => "Required fields",
+      '#items' => $required,
+    );
+    $optionalItems = array(
+      '#theme' => 'item_list',
+      '#title' => "Optional fields",
+      '#items' => $optional,
+    );
+
     $render = array(
-      '#theme' => 'rest_documentation_type',
-      '#title' => 'Fields for ' . $entity_type . '/' . $bundle,
-      '#required' => $required,
-      '#optional' => $optional,
+      '#theme' => 'item_list',
+      '#title' => 'Fields for ' . $entity_type . ' / ' . $bundle,
+      '#items' => array($requiredItems, $optionalItems),
     );
     return $render;
   }
 
+  /**
+   * Generate field page.
+   *
+   * @param $entity_type
+   * @param $bundle
+   * @param $field_name
+   * @return mixed
+   */
+  public function relation($entity_type, $bundle, $field_name) {
+    // TODO fix for drupal_set_title
+    // drupal_set_title($field_name);
+
+    /** @var \Drupal\Core\Field\FieldDefinitionInterface[] $fields */
+    $fields = $this->getEntityManager()->getFieldDefinitions($entity_type, $bundle);
+
+    /** @var \Drupal\Core\Field\FieldDefinitionInterface $field_definition */
+    $field_definition = $fields[$field_name];
+
+    // TODO: SA what information is disclosed?
+    //       All settings are exposed
+    // TODO: how to check for field permissions?
+
+    $rows = array();
+    $rows[] = array("Type", $field_definition->getType());
+    $rows[] = array("Description", $field_definition->getDescription());
+    foreach ($field_definition->getSettings() as $key => $value) {
+      $rows[] = array("Settings - $key", print_r($value, TRUE));
+    }
+
+    $result = array(
+      '#theme' => 'table',
+      '#title' => t("Rest resources for !entity_type / !bundle / !field_name", array(
+        '!entity_type' => l($entity_type, ''),
+        '!bundle' => l($bundle, '/docs/rest/api/types/' . $entity_type . '/' . $bundle),
+        '!field_name' => $field_name,
+      )),
+      '#rows' => $rows,
+    );
+    return $result;
+  }
+
   protected function getRestBundles() {
+    // TODO use DIC
     $bundles = \Drupal::entityManager()->getAllBundleInfo();
 
+    $config = \Drupal::config('rest.settings')->get('resources');
+
     // TODO: Change this to only expose info for REST enabled entity types.
-    // TODO: filter out all ConfigEntities
+    //       aka filter out all ConfigEntities too.
 
     return $bundles;
   }
 
   protected function getEntityManager() {
+    // TODO use DIC
     return \Drupal::entityManager();
   }
 

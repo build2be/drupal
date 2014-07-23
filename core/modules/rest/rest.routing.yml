@@ -7,6 +7,6 @@ rest.csrftoken:
 rest.docs:
   path: /docs/rest/api
   defaults:
-    _content: 'Drupal\rest\Controller::apidocs'
+    _content: 'Drupal\rest\Controller::docRoot'
   requirements:
     _access: 'TRUE'
