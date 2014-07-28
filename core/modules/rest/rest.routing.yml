@@ -10,3 +10,21 @@ rest.docs:
     _content: 'Drupal\rest\Controller::docRoot'
   requirements:
     _access: 'TRUE'
+rest.docs_entity:
+  path: /docs/rest/api/{entity_type}
+  defaults:
+    _content: 'Drupal\rest\Controller::docEntity'
+  requirements:
+    _access: 'TRUE'
+rest.docs_bundle:
+  path: /docs/rest/api/types/{entity_type}/{bundle}
+  defaults:
+    _content: 'Drupal\rest\Controller::docBundle'
+  requirements:
+    _access: 'TRUE'
+rest.docs_field:
+  path: /rest/relation/{entity_type}/{bundle}/{field}
+  defaults:
+    _content: 'Drupal\rest\Controller::docField'
+  requirements:
+    _access: 'TRUE'
