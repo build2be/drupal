@@ -28,35 +28,10 @@ class Controller extends ContainerAware {
   public function docRoot() {
     $config = \Drupal::config('rest.settings')->get('resources') ?: array();
 
-    $all_bundles = $this->getRestBundles();
-
     $items = array();
     foreach ($config as $id => $config) {
-      $item = array();
-      foreach ($config as $method => $settings) {
-        $supported_formats = join(', ', $settings['supported_formats']);
-        $supported_auth = join(", ", $settings['supported_auth']);
-        $item[] = t("Method %method using formats '%supported_formats' with authentication methods '%supported_auth'", array(
-          '%method' => $method,
-          '%supported_auth' => $supported_auth,
-          '%supported_formats' => $supported_formats
-        ));
-      }
-
       list(, $entity) = explode(":", $id);
-      $bundles = array_keys($all_bundles[$entity]);
-      $doc_refs = array();
-      foreach ($bundles as $bundle) {
-        $doc_refs[] = l($bundle, '/docs/rest/api/types/' . $entity . '/' . $bundle);
-      }
-      $items[] = array(
-        '#theme' => 'item_list',
-        '#title' => t("Resource %entity has documentation for !doc-urls", array(
-          '%entity' => $entity,
-          '!doc-urls' => join(', ', $doc_refs)
-        )),
-        '#items' => $item,
-      );
+      $items[] = l($entity, '/docs/rest/api/' . $entity);
     }
 
     $result = array(
@@ -69,13 +44,70 @@ class Controller extends ContainerAware {
   }
 
   /**
-   * List all fields for given entity type and bundle.
+   * Document page for the given entity type.
+   *
+   * The request methods and bundles are listen.
+   *
+   * @param string $entity_type
+   * @return array
+   */
+  public function docEntity($entity_type) {
+    // TODO: validate access permission
+    $config = \Drupal::config('rest.settings')->get('resources') ?: array();
+
+    $all_bundles = $this->getRestBundles();
+
+    // TODO: make sure exists and add proper response
+    $config = $config["entity:" . $entity_type];
+
+    // TODO: validate rest method permissions
+    $methods = array();
+    foreach ($config as $method => $settings) {
+      $supported_formats = join(', ', $settings['supported_formats']);
+      $supported_auth = join(", ", $settings['supported_auth']);
+      $methods[] = t("Method %method using formats '%supported_formats' with authentication methods '%supported_auth'", array(
+        '%method' => $method,
+        '%supported_auth' => $supported_auth,
+        '%supported_formats' => $supported_formats
+      ));
+    }
+    $m = array(
+      '#theme' => 'item_list',
+      '#title' => t("Available methods"),
+      '#items' => $methods,
+    );
+
+    $doc_refs = array();
+    foreach (array_keys($all_bundles[$entity_type]) as $bundle) {
+      // TODO fixed path to align in /docs/rest/api/$entity_type/$bundle/$field
+      $doc_refs[] = l($bundle, '/docs/rest/api/types/' . $entity_type . '/' . $bundle);
+    }
+    $bundles = array(
+      '#theme' => 'item_list',
+      '#title' => t("Resource bundles are:"),
+      '#items' => $doc_refs,
+    );
+
+    $result = array(
+      '#theme' => 'item_list',
+      '#title' => t('Rest resources for type %entity.', array('%entity' => $entity_type)),
+      '#items' => array(
+        $bundles,
+        $m,
+      ),
+    );
+
+    return $result;
+  }
+
+  /**
+   * List all fields for given entity_type type and bundle.
    *
    * @param $entity_type
    * @param $bundle
    * @return array
    */
-  public function type($entity_type, $bundle) {
+  public function docBundle($entity_type, $bundle) {
     $required = array();
     $optional = array();
 
@@ -83,6 +115,7 @@ class Controller extends ContainerAware {
 
     /** @var \Drupal\Core\Field\FieldDefinitionInterface $field */
     foreach ($fields as $id => $field) {
+      // TODO: fix the HAL/serializer path to match to /docs/rest/api/$entity_type/$bundle/$field
       $item = l($field->getName(), "rest/relation/$entity_type/$bundle/$id");
 
       if ($field->isRequired()) {
@@ -106,7 +139,7 @@ class Controller extends ContainerAware {
 
     $render = array(
       '#theme' => 'item_list',
-      '#title' => 'Fields for ' . $entity_type . ' / ' . $bundle,
+      '#title' => 'Fields for ' . l($entity_type, '/docs/rest/api/' . $entity_type) . ' / ' . $bundle,
       '#items' => array($requiredItems, $optionalItems),
     );
     return $render;
@@ -120,7 +153,7 @@ class Controller extends ContainerAware {
    * @param $field_name
    * @return mixed
    */
-  public function relation($entity_type, $bundle, $field_name) {
+  public function docField($entity_type, $bundle, $field) {
     // TODO fix for drupal_set_title
     // drupal_set_title($field_name);
 
@@ -128,7 +161,7 @@ class Controller extends ContainerAware {
     $fields = $this->getEntityManager()->getFieldDefinitions($entity_type, $bundle);
 
     /** @var \Drupal\Core\Field\FieldDefinitionInterface $field_definition */
-    $field_definition = $fields[$field_name];
+    $field_definition = $fields[$field];
 
     // TODO: SA what information is disclosed?
     //       All settings are exposed
@@ -144,9 +177,9 @@ class Controller extends ContainerAware {
     $result = array(
       '#theme' => 'table',
       '#title' => t("Rest resources for !entity_type / !bundle / !field_name", array(
-        '!entity_type' => l($entity_type, ''),
+        '!entity_type' => l($entity_type, '/docs/rest/api/' . $entity_type),
         '!bundle' => l($bundle, '/docs/rest/api/types/' . $entity_type . '/' . $bundle),
-        '!field_name' => $field_name,
+        '!field_name' => $field,
       )),
       '#rows' => $rows,
     );
@@ -159,7 +192,7 @@ class Controller extends ContainerAware {
 
     $config = \Drupal::config('rest.settings')->get('resources');
 
-    // TODO: Change this to only expose info for REST enabled entity types.
+    // TODO: Change this to only expose info for REST enabled entity_type types.
     //       aka filter out all ConfigEntities too.
 
     return $bundles;
