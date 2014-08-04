@@ -15,7 +15,7 @@ services:
       - { name: access_check }
   rest.link_manager:
     class: Drupal\rest\LinkManager\LinkManager
-    arguments: ['@rest.link_manager.type', '@rest.link_manager.relation']
+    arguments: ['@rest.link_manager.type', '@rest.link_manager.relation', '@rest.link_manager.collection']
   rest.link_manager.type:
     class: Drupal\rest\LinkManager\TypeLinkManager
     arguments: ['@cache.default']
@@ -30,3 +30,5 @@ services:
   logger.channel.rest:
     parent: logger.channel_base
     arguments: ['rest']
+  rest.link_manager.collection:
+    class: Drupal\rest\LinkManager\CollectionLinkManager

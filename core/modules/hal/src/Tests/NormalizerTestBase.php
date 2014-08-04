@@ -15,6 +15,7 @@ use Drupal\hal\Normalizer\FieldItemNormalizer;
 use Drupal\hal\Normalizer\FieldNormalizer;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\rest\LinkManager\LinkManager;
+use Drupal\rest\LinkManager\CollectionLinkManager;
 use Drupal\rest\LinkManager\RelationLinkManager;
 use Drupal\rest\LinkManager\TypeLinkManager;
 use Drupal\serialization\EntityResolver\ChainEntityResolver;
@@ -115,8 +116,11 @@ abstract class NormalizerTestBase extends DrupalUnitTestBase {
       'translatable' => TRUE,
     ))->save();
 
-    $entity_manager = \Drupal::entityManager();
-    $link_manager = new LinkManager(new TypeLinkManager(new MemoryBackend('default')), new RelationLinkManager(new MemoryBackend('default'), $entity_manager));
+    $link_manager = new LinkManager(
+      new TypeLinkManager(new MemoryBackend('cache')),
+      new RelationLinkManager(new MemoryBackend('cache'), \Drupal::entityManager()),
+      new CollectionLinkManager()
+    );
 
     $chain_resolver = new ChainEntityResolver(array(new UuidResolver($entity_manager), new TargetIdResolver()));
 

@@ -8,10 +8,14 @@
 namespace Drupal\rest\Tests\Views;
 
 use Drupal\Component\Utility\String;
+use Drupal\serialization\Collection;
+use Drupal\views\ViewExecutable;
 use Drupal\views\Views;
 use Drupal\views\Tests\Plugin\PluginTestBase;
 use Drupal\views\Tests\ViewTestData;
 use Symfony\Component\HttpFoundation\Request;
+use Drupal\Component\Utility\Json;
+use Drupal\rest\Plugin\views\style\Serializer;
 
 /**
  * Tests the serializer style plugin.
@@ -29,26 +33,58 @@ class StyleSerializerTest extends PluginTestBase {
    *
    * @var array
    */
-  public static $modules = array('views_ui', 'entity_test', 'hal', 'rest_test_views', 'node', 'text', 'field');
+  public static $modules = array(
+    'views_ui',
+    'entity_test',
+    'hal',
+    'rest_test_views',
+    'node',
+    'text',
+    'field',
+  );
 
   /**
    * Views used by this test.
    *
    * @var array
    */
-  public static $testViews = array('test_serializer_display_field', 'test_serializer_display_entity', 'test_serializer_node_display_field');
+  public static $testViews = array(
+    'test_serializer_display_field',
+    'test_serializer_display_entity',
+    'test_serializer_node_display_field',
+  );
 
   /**
-   * A user with administrative privileges to look at test entity and configure views.
+   * A user with administrative privileges to look at test entity and configure
+   * views.
    */
   protected $adminUser;
 
+  /**
+   * {@inheritdoc}
+   */
+  public static function getInfo() {
+    return array(
+      'name' => 'Style: Serializer plugin',
+      'description' => 'Tests the serializer style plugin.',
+      'group' => 'Views Plugins',
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
 
     ViewTestData::createTestViews(get_class($this), array('rest_test_views'));
 
-    $this->adminUser = $this->drupalCreateUser(array('administer views', 'administer entity_test content', 'access user profiles', 'view test entity'));
+    $this->adminUser = $this->drupalCreateUser(array(
+      'administer views',
+      'administer entity_test content',
+      'access user profiles',
+      'view test entity',
+    ));
 
     // Save some entity_test entities.
     for ($i = 1; $i <= 10; $i++) {
@@ -59,6 +95,37 @@ class StyleSerializerTest extends PluginTestBase {
   }
 
   /**
+   * Retrieves a Drupal path or an absolute path with hal+json.
+   *
+   * Sets Accept-Header to application/hal+json and decodes the result.
+   *
+   * @param string $path
+   *   Path to request HAL+JSON from.
+   * @param array $options
+   *   Array of options to pass to url().
+   * @param array $headers
+   *   Array of headers.
+   *
+   * @return array
+   *   Decoded json.
+   * Requests a Drupal path in HAL+JSON format, and JSON decodes the response.
+   */
+  protected function drupalGetHalJson($path, array $options = array(), array $headers = array()) {
+    $headers[] = 'Accept: application/hal+json';
+    return Json::decode($this->drupalGet($path, $options, $headers));
+  }
+
+  /**
+   * Retrieve the Collection object for given view.
+   *
+   * @return \Drupal\serialization\Collection
+   *   The collection object to pass into the serializer.
+   */
+  protected function getCollectionFromView(ViewExecutable $view) {
+    return $view->getStyle()->getCollection($view);
+  }
+
+  /**
    * Checks the behavior of the Serializer callback paths and row plugins.
    */
   public function testSerializerResponses() {
@@ -66,8 +133,8 @@ class StyleSerializerTest extends PluginTestBase {
     $view = Views::getView('test_serializer_display_field');
     $view->initDisplay();
     $this->executeView($view);
-
-    $actual_json = $this->drupalGet('test/serialize/field', array(), array('Accept: application/json'));
+    // application/json-type serialization.
+    $actual_json = $this->drupalGetJSON('test/serialize/field');
     $this->assertResponse(200);
 
     // Test the http Content-type.
@@ -83,8 +150,7 @@ class StyleSerializerTest extends PluginTestBase {
       $expected[] = $expected_row;
     }
 
-    $this->assertIdentical($actual_json, json_encode($expected), 'The expected JSON output was found.');
-
+    $this->assertIdentical($actual_json, $expected, 'The expected JSON output was found.');
 
     // Test that the rendered output and the preview output are the same.
     $view->destroy();
@@ -92,41 +158,146 @@ class StyleSerializerTest extends PluginTestBase {
     // Mock the request content type by setting it on the display handler.
     $view->display_handler->setContentType('json');
     $output = $view->preview();
-    $this->assertIdentical($actual_json, drupal_render($output), 'The expected JSON preview output was found.');
+    $this->assertIdentical(Json::encode($actual_json), drupal_render($output), 'The expected JSON preview output was found.');
 
     // Test a 403 callback.
     $this->drupalGet('test/serialize/denied');
     $this->assertResponse(403);
 
     // Test the entity rows.
-
     $view = Views::getView('test_serializer_display_entity');
+    $view->setDisplay('rest_export_1');
     $view->initDisplay();
     $this->executeView($view);
 
     // Get the serializer service.
     $serializer = $this->container->get('serializer');
+    // Create the entity collection.
+    $collection = $this->getCollectionFromView($view);
+    $expected = $serializer->serialize($collection, 'json');
 
-    $entities = array();
-    foreach ($view->result as $row) {
-      $entities[] = $row->_entity;
-    }
+    $this->assertFalse($collection->hasLinks(), 'Collection created from a non-paging view does not have (hypermedia) link relations');
 
-    $expected = $serializer->serialize($entities, 'json');
-
-    $actual_json = $this->drupalGet('test/serialize/entity', array(), array('Accept: application/json'));
+    $actual_json = $this->drupalGetJSON('test/serialize/entity');
     $this->assertResponse(200);
-    $this->assertIdentical($actual_json, $expected, 'The expected JSON output was found.');
+    $this->assertIdentical(Json::encode($actual_json), $expected, 'The expected JSON output was found.');
 
-    $expected = $serializer->serialize($entities, 'hal_json');
-    $actual_json = $this->drupalGet('test/serialize/entity', array(), array('Accept: application/hal+json'));
-    $this->assertIdentical($actual_json, $expected, 'The expected HAL output was found.');
+    // application/hal+json-type serialization.
+    $expected = $serializer->serialize($collection, 'hal_json');
+    $actual_json = $this->drupalGetHalJson('test/serialize/entity');
+    $this->assertIdentical(Json::encode($actual_json), $expected, 'The expected HAL output was found.');
+
+    // Make assertions on the structure of the response.
+    $this->assertTrue(isset($actual_json['_embedded']) && isset($actual_json['_links']), 'Has _links and _embedded keys');
+
+    $this->assertEqual(count($actual_json['_embedded']['item']), 10);
+    $this->assertEqual($actual_json['_links']['self']['href'], url($view->getUrl(), array('absolute' => TRUE)));
+    $this->assertEqual(array_keys($actual_json['_links']), array('self'));
+  }
+
+  /**
+   * Checks the paging behavior of callback paths and row plugins.
+   */
+  protected function testSerializerPageableCollectionHalJsonResponses() {
+    // Test the entity rows - with paging.
+    $view = Views::getView('test_serializer_display_entity');
+    $view->setDisplay('rest_export_paging');
+    $view->initDisplay();
+    $this->executeView($view);
+
+    // Get the serializer service.
+    $serializer = $this->container->get('serializer');
+    // Create the entity collection from the current view.
+    $collection = $this->getCollectionFromView($view);
+    $this->assertTrue($collection->hasLinks(), 'Collection created from a paging view has (hypermedia) link relations');
+
+    $expected = $serializer->serialize($collection, 'hal_json');
+    $actual_json = $this->drupalGetHalJson('test/serialize/entity_paging');
+    $this->assertIdentical(Json::encode($actual_json), $expected, 'The expected HAL output was found.');
+
+    // Make assertions on the structure of the response.
+    $this->assertTrue(isset($actual_json['_embedded']) && isset($actual_json['_links']), 'Has _links and _embedded keys');
+
+    $this->assertEqual(count($actual_json['_embedded']['item']), 1);
+    $this->assertEqual($actual_json['_links']['self']['href'], url($view->getUrl(), array('absolute' => TRUE)));
+    $this->assertEqual($actual_json['_links']['first']['href'], url($view->getUrl(), array('query' => array('page' => 0), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json['_links']['next']['href'], url($view->getUrl(), array('query' => array('page' => 1), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json['_links']['last']['href'], url($view->getUrl(), array('query' => array('page' => 9), 'absolute' => TRUE)));
+    $this->assertEqual(array_keys($actual_json['_links']), array(
+      'self',
+      'first',
+      'next',
+      'last',
+    ));
+
+    // Load the second page.
+    $actual_json_page_1 = $this->drupalGetHalJson($actual_json['_links']['next']['href']);
+    $this->assertTrue(isset($actual_json_page_1['_embedded']) && isset($actual_json_page_1['_links']), 'Has _links and _embedded keys');
+
+    $this->assertEqual(count($actual_json_page_1['_embedded']['item']), 1);
+    $this->assertEqual($actual_json_page_1['_links']['self']['href'], url($view->getUrl(), array('query' => array('page' => 1), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_1['_links']['first']['href'], url($view->getUrl(), array('query' => array('page' => 0), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_1['_links']['prev']['href'], url($view->getUrl(), array('query' => array('page' => 0), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_1['_links']['next']['href'], url($view->getUrl(), array('query' => array('page' => 2), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_1['_links']['last']['href'], url($view->getUrl(), array('query' => array('page' => 9), 'absolute' => TRUE)));
+    $this->assertEqual(array_keys($actual_json_page_1['_links']), array(
+      'self',
+      'first',
+      'prev',
+      'next',
+      'last',
+    ));
+
+    // Test the entity rows - with paging.
+    $view = Views::getView('test_serializer_display_entity');
+    $view->setDisplay('rest_export_paging');
+    $view->initDisplay();
+    $view->setCurrentPage(1);
+    $this->executeView($view);
+
+    // Create the entity collection.
+    $collection = $this->getCollectionFromView($view);
+    $this->assertTrue($collection->hasLinks(), 'Collection created from a paging view has (hypermedia) link relations');
+    $expected = $serializer->serialize($collection, 'hal_json');
+
+    $this->assertEqual(Json::encode($actual_json_page_1), $expected, 'The expected HAL output for page=1 was found.');
+
+    // Load the last page.
+    $actual_json_page_last = $this->drupalGetHalJSON($actual_json['_links']['last']['href']);
+
+    $this->assertTrue(isset($actual_json_page_last['_embedded']) && isset($actual_json_page_last['_links']), 'Has _links and _embedded keys');
+
+    $this->assertEqual(count($actual_json_page_last['_embedded']['item']), 1);
+    $this->assertEqual($actual_json_page_last['_links']['self']['href'], url($view->getUrl(), array('query' => array('page' => 9), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_last['_links']['first']['href'], url($view->getUrl(), array('query' => array('page' => 0), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_last['_links']['prev']['href'], url($view->getUrl(), array('query' => array('page' => 8), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_last['_links']['last']['href'], url($view->getUrl(), array('query' => array('page' => 9), 'absolute' => TRUE)));
+    $this->assertEqual(array_keys($actual_json_page_last['_links']), array(
+      'self',
+      'first',
+      'prev',
+      'last',
+    ));
+
+    // Test the entity rows - with paging.
+    $view = Views::getView('test_serializer_display_entity');
+    $view->setDisplay('rest_export_paging');
+    $view->initDisplay();
+    $view->setCurrentPage(9);
+    $this->executeView($view);
+
+    // Create the entity collection.
+    $collection = $this->getCollectionFromView($view);
+    $this->assertTrue($collection->hasLinks(), 'Collection created from a paging view has (hypermedia) link relations');
+    $expected = $serializer->serialize($collection, 'hal_json');
+
+    $this->assertEqual(Json::encode($actual_json_page_last), $expected, 'The expected HAL output for last page was found.');
   }
 
   /**
    * Tests the response format configuration.
    */
-  public function testReponseFormatConfiguration() {
+  public function testResponseFormatConfiguration() {
     $this->drupalLogin($this->adminUser);
 
     $style_options = 'admin/structure/views/nojs/display/test_serializer_display_field/rest_export_1/style_options';
@@ -138,7 +309,7 @@ class StyleSerializerTest extends PluginTestBase {
     // Should return a 406.
     $this->drupalGet('test/serialize/field', array(), array('Accept: application/json'));
     $this->assertResponse(406, 'A 406 response was returned when JSON was requested.');
-     // Should return a 200.
+    // Should return a 200.
     $this->drupalGet('test/serialize/field', array(), array('Accept: application/xml'));
     $this->assertResponse(200, 'A 200 response was returned when XML was requested.');
 
@@ -233,6 +404,148 @@ class StyleSerializerTest extends PluginTestBase {
     $this->assertIdentical($this->drupalGetJSON('test/serialize/field'), $expected);
   }
 
+
+  /**
+   * Tests the Serializer paths and responses for field-based views.
+   */
+  public function testSerializerFieldDisplayResponse() {
+    $view = Views::getView('test_serializer_display_field');
+    $view->setDisplay('rest_export_1');
+    // Mock the request content type by setting it on the display handler.
+    $view->display_handler->setContentType('hal_json');
+    $this->executeView($view);
+
+    $view_output = $view->preview();
+    $view_result = array();
+    foreach ($view->result as $row) {
+      $expected_row = array();
+      foreach ($view->field as $id => $field) {
+        $expected_row[$id] = $field->render($row);
+      }
+      $view_result[] = $expected_row;
+    }
+
+    $serializer = $this->container->get('serializer');
+    $collection = $this->getCollectionFromView($view);
+    $expected = $serializer->serialize($collection, 'hal_json');
+
+    $actual_json = $this->drupalGetHalJson('test/serialize/field');
+
+    $this->assertIdentical(Json::encode($actual_json), drupal_render($view_output), 'Preview output matches the (reserialized) JSON returned from the view via HTTP GET.');
+    $this->assertIdentical(Json::encode($actual_json), $expected, 'HAL serializer output matches the (reserialized) JSON returned from the view via HTTP GET.');
+    $this->assertIdentical($actual_json['_embedded']['item'], $view_result, 'View result matches JSON returned from the view via HTTP GET');
+  }
+
+  /**
+   * Tests the Serializer paths and responses for field-based views with paging.
+   */
+  public function testSerializerFieldDisplayPagingResponse() {
+    $view = Views::getView('test_serializer_display_field');
+    $view->setDisplay('rest_export_paging');
+    // Mock the request content type by setting it on the display handler.
+    $view->display_handler->setContentType('hal_json');
+    $this->executeView($view);
+
+    $view_output = $view->preview();
+    $view_result = array();
+    foreach ($view->result as $row) {
+      $expected_row = array();
+      foreach ($view->field as $id => $field) {
+        $expected_row[$id] = $field->render($row);
+      }
+      $view_result[] = $expected_row;
+    }
+
+    $serializer = $this->container->get('serializer');
+    $collection = $this->getCollectionFromView($view);
+    $expected = $serializer->serialize($collection, 'hal_json');
+
+    $actual_json = $this->drupalGetHalJson('test/serialize/field-paging');
+
+    $this->assertIdentical(Json::encode($actual_json), drupal_render($view_output), 'Preview output matches the (reserialized) JSON returned from the view via HTTP GET.');
+    $this->assertIdentical(Json::encode($actual_json), $expected, 'HAL serializer output matches the (reserialized) JSON returned from the view via HTTP GET.');
+    $this->assertIdentical($actual_json['_embedded']['item'], $view_result, 'View result matches JSON returned from the view via HTTP GET');
+
+    // Make assertions on the structure of the response.
+    $this->assertTrue(isset($actual_json['_embedded']) && isset($actual_json['_links']), 'Has _links and _embedded keys');
+
+    $this->assertEqual(count($actual_json['_embedded']['item']), 1);
+    $this->assertEqual($actual_json['_links']['self']['href'], url($view->getUrl(), array('absolute' => TRUE)));
+    $this->assertEqual($actual_json['_links']['first']['href'], url($view->getUrl(), array('query' => array('page' => 0), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json['_links']['next']['href'], url($view->getUrl(), array('query' => array('page' => 1), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json['_links']['last']['href'], url($view->getUrl(), array('query' => array('page' => 4), 'absolute' => TRUE)));
+    $this->assertEqual(array_keys($actual_json['_links']), array(
+      'self',
+      'first',
+      'next',
+      'last',
+    ));
+
+    // Load the second page.
+    $actual_json_page_1 = $this->drupalGetHalJson($actual_json['_links']['next']['href']);
+
+    $this->assertTrue(isset($actual_json_page_1['_embedded']) && isset($actual_json_page_1['_links']), 'Has _links and _embedded keys');
+
+    $this->assertEqual(count($actual_json_page_1['_embedded']['item']), 1);
+    $this->assertEqual($actual_json_page_1['_links']['self']['href'], url($view->getUrl(), array('query' => array('page' => 1), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_1['_links']['first']['href'], url($view->getUrl(), array('query' => array('page' => 0), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_1['_links']['prev']['href'], url($view->getUrl(), array('query' => array('page' => 0), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_1['_links']['next']['href'], url($view->getUrl(), array('query' => array('page' => 2), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_1['_links']['last']['href'], url($view->getUrl(), array('query' => array('page' => 4), 'absolute' => TRUE)));
+    $this->assertEqual(array_keys($actual_json_page_1['_links']), array(
+      'self',
+      'first',
+      'prev',
+      'next',
+      'last',
+    ));
+
+    // Test the entity rows - with paging.
+    $view = Views::getView('test_serializer_display_field');
+    $view->setDisplay('rest_export_paging');
+    $view->initDisplay();
+    $view->setCurrentPage(1);
+    $this->executeView($view);
+
+    // Create the entity collection.
+    $collection = $this->getCollectionFromView($view);
+    $this->assertTrue($collection->hasLinks(), 'Collection created from a paging view has (hypermedia) link relations');
+    $expected = $serializer->serialize($collection, 'hal_json');
+
+    $this->assertEqual(Json::encode($actual_json_page_1), $expected, 'The expected HAL output for page=1 was found.');
+
+    // Load the last page.
+    $actual_json_page_last = $this->drupalGetHalJson($actual_json['_links']['last']['href']);
+
+    $this->assertTrue(isset($actual_json_page_last['_embedded']) && isset($actual_json_page_last['_links']), 'Has _links and _embedded keys');
+
+    $this->assertEqual(count($actual_json_page_last['_embedded']['item']), 1);
+    $this->assertEqual($actual_json_page_last['_links']['self']['href'], url($view->getUrl(), array('query' => array('page' => 4), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_last['_links']['first']['href'], url($view->getUrl(), array('query' => array('page' => 0), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_last['_links']['prev']['href'], url($view->getUrl(), array('query' => array('page' => 3), 'absolute' => TRUE)));
+    $this->assertEqual($actual_json_page_last['_links']['last']['href'], url($view->getUrl(), array('query' => array('page' => 4), 'absolute' => TRUE)));
+    $this->assertEqual(array_keys($actual_json_page_last['_links']), array(
+      'self',
+      'first',
+      'prev',
+      'last',
+    ));
+
+    // Test the entity rows - with paging.
+    $view = Views::getView('test_serializer_display_field');
+    $view->setDisplay('rest_export_paging');
+    $view->initDisplay();
+    $view->setCurrentPage(4);
+    $this->executeView($view);
+
+    // Create the entity collection.
+    $collection = $this->getCollectionFromView($view);
+    $this->assertTrue($collection->hasLinks(), 'Collection created from a paging view has (hypermedia) link relations');
+    $expected = $serializer->serialize($collection, 'hal_json');
+
+    $this->assertEqual(Json::encode($actual_json_page_last), $expected, 'The expected HAL output for last page was found.');
+  }
+
   /**
    * Tests the raw output options for row field rendering.
    */
@@ -277,13 +590,9 @@ class StyleSerializerTest extends PluginTestBase {
 
     // Get the serializer service.
     $serializer = $this->container->get('serializer');
-
-    $entities = array();
-    foreach ($view->result as $row) {
-      $entities[] = $row->_entity;
-    }
-
-    $expected = String::checkPlain($serializer->serialize($entities, 'json'));
+    // Create the collection.
+    $collection = $this->getCollectionFromView($view);
+    $expected = String::checkPlain($serializer->serialize($collection, 'json'));
 
     $view->live_preview = TRUE;
 
@@ -302,6 +611,8 @@ class StyleSerializerTest extends PluginTestBase {
     $result = $this->drupalGetJSON('test/serialize/node-field');
     $this->assertEqual($result[0]['nid'], $node->id());
     $this->assertEqual($result[0]['body'], $node->body->processed);
+
+    // @todo: add HAL+JSON and paging.
   }
 
 }

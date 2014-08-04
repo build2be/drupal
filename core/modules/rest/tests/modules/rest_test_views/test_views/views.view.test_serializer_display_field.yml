@@ -101,6 +101,29 @@ display:
         type: serializer
       row:
         type: data_field
+  rest_export_paging:
+    display_plugin: rest_export
+    id: rest_export_paging
+    display_title: 'serializer - paging'
+    position: null
+    display_options:
+      defaults:
+        access: false
+        style: false
+        row: false
+      path: test/serialize/field-paging
+      access:
+        type: none
+      style:
+        type: serializer
+      row:
+        type: data_field
+      pager:
+        type: full
+        options:
+          items_per_page: 1
+          offset: 0
+          id: 0
 base_field: id
 status: true
 module: rest

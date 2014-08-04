@@ -16,8 +16,8 @@ namespace Drupal\rest\LinkManager;
  * extending all of the component ones.
  *
  * While a link manager may directly implement these interface methods with
- * custom logic, it is expected to be more common for plugin managers to proxy
+ * custom logic, it is expected to be more common for link managers to proxy
  * the method invocations to the respective components.
  */
-interface LinkManagerInterface extends TypeLinkManagerInterface, RelationLinkManagerInterface {
+interface LinkManagerInterface extends TypeLinkManagerInterface, RelationLinkManagerInterface, CollectionLinkManagerInterface {
 }
