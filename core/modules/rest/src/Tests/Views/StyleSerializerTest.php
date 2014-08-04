@@ -15,7 +15,6 @@ use Drupal\views\Tests\Plugin\PluginTestBase;
 use Drupal\views\Tests\ViewTestData;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\Component\Utility\Json;
-use Drupal\rest\Plugin\views\style\Serializer;
 
 /**
  * Tests the serializer style plugin.
