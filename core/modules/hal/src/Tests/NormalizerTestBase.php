@@ -116,9 +116,10 @@ abstract class NormalizerTestBase extends KernelTestBase {
       'translatable' => TRUE,
     ))->save();
 
+    $entity_manager = \Drupal::entityManager();
     $link_manager = new LinkManager(
       new TypeLinkManager(new MemoryBackend('cache')),
-      new RelationLinkManager(new MemoryBackend('cache'), \Drupal::entityManager()),
+      new RelationLinkManager(new MemoryBackend('cache'), $entity_manager),
       new CollectionLinkManager()
     );
 
