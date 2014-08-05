@@ -116,7 +116,7 @@ class ContentEntityNormalizer extends NormalizerBase {
    *     all default values for entity fields before applying $data to the
    *     entity.
    *
-   * @throws \Symfony\Component\Serializer\Exception\UnexpectedValueException
+   * @return \Drupal\Core\Entity\EntityInterface|object
    */
   public function denormalize($data, $class, $format = NULL, array $context = array()) {
     // Get type, necessary for determining which bundle to create.

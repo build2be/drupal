@@ -20,7 +20,7 @@ interface UuidReferenceInterface extends NormalizerInterface {
    * @param array $data
    *   The data, as was passed into the Normalizer.
    *
-   * @return string
+   * @return string|null
    *   A UUID.
    */
   public function getUuid($data);
