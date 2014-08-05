@@ -23,7 +23,9 @@ class FieldNormalizer extends NormalizerBase {
   protected $supportedInterfaceOrClass = 'Drupal\Core\Field\FieldItemListInterface';
 
   /**
-   * Implements \Symfony\Component\Serializer\Normalizer\NormalizerInterface::normalize()
+   * {@inheritdoc}
+   *
+   * @var \Drupal\Core\Field\FieldItemListInterface $field
    */
   public function normalize($field, $format = NULL, array $context = array()) {
     $normalized_field_items = array();
@@ -58,17 +60,18 @@ class FieldNormalizer extends NormalizerBase {
 
 
   /**
-   * Implements \Symfony\Component\Serializer\Normalizer\DenormalizerInterface::denormalize()
+   * {@inheritdoc}
    */
   public function denormalize($data, $class, $format = NULL, array $context = array()) {
     if (!isset($context['target_instance'])) {
       throw new InvalidArgumentException('$context[\'target_instance\'] must be set to denormalize with the FieldNormalizer');
     }
-    if ($context['target_instance']->getParent() == NULL) {
+    /** @var \Drupal\Core\Field\FieldItemListInterface $field */
+    $field = $context['target_instance'];
+    if ($field->getParent() == NULL) {
       throw new InvalidArgumentException('The field passed in via $context[\'target_instance\'] must have a parent set.');
     }
 
-    $field = $context['target_instance'];
     foreach ($data as $field_item_data) {
       $count = $field->count();
       // Get the next field item instance. The offset will serve as the field
@@ -77,6 +80,7 @@ class FieldNormalizer extends NormalizerBase {
       $field_item_class = get_class($field_item);
       // Pass in the empty field item object as the target instance.
       $context['target_instance'] = $field_item;
+      // @todo Method 'denormalize' not found in class \Symfony\Component\Serializer\SerializerInterface
       $this->serializer->denormalize($field_item_data, $field_item_class, $format, $context);
     }
 
@@ -101,6 +105,7 @@ class FieldNormalizer extends NormalizerBase {
     $normalized_field_items = array();
     if (!$field->isEmpty()) {
       foreach ($field as $field_item) {
+        // @todo Method 'normalize' not found in class \Symfony\Component\Serializer\SerializerInterface
         $normalized_field_items[] = $this->serializer->normalize($field_item, $format, $context);
       }
     }

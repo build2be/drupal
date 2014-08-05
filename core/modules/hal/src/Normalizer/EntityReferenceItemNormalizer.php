@@ -120,6 +120,7 @@ class EntityReferenceItemNormalizer extends FieldItemNormalizer implements UuidR
       }
       return $uuid;
     }
+    return NULL;
   }
 
 }
