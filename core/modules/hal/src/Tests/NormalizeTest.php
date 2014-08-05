@@ -29,8 +29,10 @@ class NormalizeTest extends NormalizerTestBase {
    * Tests the normalize function.
    */
   public function testNormalize() {
+    /** @var ContentEntityBase $target_entity_de */
     $target_entity_de = entity_create('entity_test', (array('langcode' => 'de', 'field_test_entity_reference' => NULL)));
     $target_entity_de->save();
+    /** @var ContentEntityBase $target_entity_en */
     $target_entity_en = entity_create('entity_test', (array('langcode' => 'en', 'field_test_entity_reference' => NULL)));
     $target_entity_en->save();
 
