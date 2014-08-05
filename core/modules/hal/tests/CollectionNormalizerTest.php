@@ -6,8 +6,6 @@
 
 namespace Drupal\hal\Tests;
 
-use Drupal\rest\LinkManager\LinkManager;
-
 use Drupal\hal\Normalizer\CollectionNormalizer;
 use Drupal\serialization\Collection;
 use Drupal\Tests\UnitTestCase;
@@ -163,7 +161,7 @@ class CollectionNormalizerTest extends UnitTestCase {
   /**
    * Get a stub LinkManager for testing.
    *
-   * @return \PHPUnit_Framework_MockObject_MockObject
+   * @return \Drupal\rest\LinkManager\LinkManagerInterface
    *   The LinkManager stub.
    */
   protected function getLinkManagerStub() {
@@ -183,7 +181,7 @@ class CollectionNormalizerTest extends UnitTestCase {
   /**
    * Get a stub Serializer for testing.
    *
-   * @return \PHPUnit_Framework_MockObject_MockObject
+   * @return \Symfony\Component\Serializer\SerializerInterface
    *   The Serializer stub.
    */
   protected function getSerializerStub() {

@@ -35,13 +35,15 @@ class FileDenormalizeTest extends WebTestBase {
       'filemime' => 'text/plain',
       'status' => FILE_STATUS_PERMANENT,
     );
-    // Create a new file entity.
+
+    /** @var \Drupal\file\Entity\File $file */
     $file = entity_create('file', $file_params);
     file_put_contents($file->getFileUri(), 'hello world');
     $file->save();
 
     $serializer = \Drupal::service('serializer');
     $normalized_data = $serializer->normalize($file, 'hal_json');
+    /** @var \Drupal\file\Entity\File $denormalized */
     $denormalized = $serializer->denormalize($normalized_data, 'Drupal\file\Entity\File', 'hal_json');
 
     $this->assertTrue($denormalized instanceof File, 'A File instance was created.');

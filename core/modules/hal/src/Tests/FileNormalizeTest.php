@@ -65,7 +65,8 @@ class FileNormalizeTest extends NormalizerTestBase {
       'filemime' => 'text/plain',
       'status' => FILE_STATUS_PERMANENT,
     );
-    // Create a new file entity.
+
+    /** @var \Drupal\file\Entity\File $file */
     $file = entity_create('file', $file_params);
     file_put_contents($file->getFileUri(), 'hello world');
     $file->save();

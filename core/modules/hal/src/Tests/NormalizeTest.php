@@ -7,6 +7,8 @@
 
 namespace Drupal\hal\Tests;
 
+use Drupal\Core\Entity\ContentEntityBase;
+
 /**
  * Tests that entities can be normalized in HAL.
  *
@@ -52,6 +54,7 @@ class NormalizeTest extends NormalizerTestBase {
       )
     );
 
+    /** @var ContentEntityBase $entity */
     $entity = entity_create('entity_test', $values);
     $entity->save();
     // Add an English value for name and entity reference properties.
@@ -167,13 +170,13 @@ class NormalizeTest extends NormalizerTestBase {
   /**
    * Constructs the entity URI.
    *
-   * @param $entity
+   * @param ContentEntityBase $entity
    *   The entity.
    *
    * @return string
    *   The entity URI.
    */
-  protected function getEntityUri($entity) {
+  protected function getEntityUri(ContentEntityBase $entity) {
     return $entity->url('canonical', array('absolute' => TRUE));
   }
 
