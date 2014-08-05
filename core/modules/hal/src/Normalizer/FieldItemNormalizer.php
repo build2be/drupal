@@ -24,9 +24,11 @@ class FieldItemNormalizer extends NormalizerBase {
   protected $supportedInterfaceOrClass = 'Drupal\Core\Field\FieldItemInterface';
 
   /**
-   * Implements \Symfony\Component\Serializer\Normalizer\NormalizerInterface::normalize()
+   * {@inheritdoc}
    */
   public function normalize($field_item, $format = NULL, array $context = array()) {
+    /** @var  $field_item \Drupal\Core\Field\FieldItemInterface */
+
     $values = $field_item->toArray();
     if (isset($context['langcode'])) {
       $values['lang'] = $context['langcode'];
@@ -36,6 +38,7 @@ class FieldItemNormalizer extends NormalizerBase {
     // keyed by field name so that field items can be merged by the
     // FieldNormalizer. This is necessary for the EntityReferenceItemNormalizer
     // to be able to place values in the '_links' array.
+    /** @var \Drupal\Core\TypedData\ComplexDataInterface|\Drupal\Core\TypedData\ListInterface $field */
     $field = $field_item->getParent();
     return array(
       $field->getName() => array($values),
@@ -43,22 +46,24 @@ class FieldItemNormalizer extends NormalizerBase {
   }
 
   /**
-   * Implements \Symfony\Component\Serializer\Normalizer\DenormalizerInterface::denormalize()
+   * {@inheritdoc}
    */
   public function denormalize($data, $class, $format = NULL, array $context = array()) {
     if (!isset($context['target_instance'])) {
       throw new InvalidArgumentException('$context[\'target_instance\'] must be set to denormalize with the FieldItemNormalizer');
     }
-    if ($context['target_instance']->getParent() == NULL) {
+    /** @var FieldItemInterface $field_item */
+    $field_item = $context['target_instance'];
+    if ($field_item->getParent() == NULL) {
       throw new InvalidArgumentException('The field item passed in via $context[\'target_instance\'] must have a parent set.');
     }
-
-    $field_item = $context['target_instance'];
 
     // If this field is translatable, we need to create a translated instance.
     if (isset($data['lang'])) {
       $langcode = $data['lang'];
       unset($data['lang']);
+
+      /** @var FieldDefinitionInterface $field_definition */
       $field_definition = $field_item->getFieldDefinition();
       if ($field_definition->isTranslatable()) {
         $field_item = $this->createTranslatedInstance($field_item, $langcode);
