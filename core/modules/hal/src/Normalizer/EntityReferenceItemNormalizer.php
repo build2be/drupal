@@ -52,10 +52,14 @@ class EntityReferenceItemNormalizer extends FieldItemNormalizer implements UuidR
   }
 
   /**
-   * Implements \Symfony\Component\Serializer\Normalizer\NormalizerInterface::normalize()
+   * {@inheritdoc}
+   *
+   * @param \Drupal\Core\Field\FieldItemInterface $field_item
+   * @param null $format
+   * @param array $context
+   * @return array|scalar
    */
   public function normalize($field_item, $format = NULL, array $context = array()) {
-    /** @var $field_item \Drupal\Core\Field\FieldItemInterface */
     $target_entity = $field_item->get('entity')->getValue();
 
     // If this is not a content entity, let the parent implementation handle it,
@@ -97,7 +101,7 @@ class EntityReferenceItemNormalizer extends FieldItemNormalizer implements UuidR
   }
 
   /**
-   * Overrides \Drupal\hal\Normalizer\FieldItemNormalizer::constructValue().
+   * {@inheritdoc}
    */
   protected function constructValue($data, $context) {
     $field_item = $context['target_instance'];

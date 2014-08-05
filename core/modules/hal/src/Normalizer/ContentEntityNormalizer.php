@@ -52,6 +52,8 @@ class ContentEntityNormalizer extends NormalizerBase {
    *
    * @param \Drupal\rest\LinkManager\LinkManagerInterface $link_manager
    *   The hypermedia link manager.
+   * @param EntityManagerInterface $entity_manager
+   * @param ModuleHandlerInterface $module_handler
    */
   public function __construct(LinkManagerInterface $link_manager, EntityManagerInterface $entity_manager, ModuleHandlerInterface $module_handler) {
     $this->linkManager = $link_manager;
@@ -60,11 +62,16 @@ class ContentEntityNormalizer extends NormalizerBase {
   }
 
   /**
-   * Implements \Symfony\Component\Serializer\Normalizer\NormalizerInterface::normalize()
+   * {@inheritdoc}
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   * @param null $format
+   * @param array $context
+   *
+   * @return array|scalar
    */
   public function normalize($entity, $format = NULL, array $context = array()) {
     // Create the array of normalized fields, starting with the URI.
-    /** @var $entity \Drupal\Core\Entity\ContentEntityInterface */
     $normalized = array(
       '_links' => array(
         'self' => array(
@@ -102,7 +109,7 @@ class ContentEntityNormalizer extends NormalizerBase {
   }
 
   /**
-   * Implements \Symfony\Component\Serializer\Normalizer\DenormalizerInterface::denormalize().
+   * {@inheritdoc}
    *
    * @param array $data
    *   Entity data to restore.
@@ -117,6 +124,8 @@ class ContentEntityNormalizer extends NormalizerBase {
    *     entity.
    *
    * @return \Drupal\Core\Entity\EntityInterface|object
+   *
+   * @throws \Symfony\Component\Serializer\Exception\UnexpectedValueException
    */
   public function denormalize($data, $class, $format = NULL, array $context = array()) {
     // Get type, necessary for determining which bundle to create.
