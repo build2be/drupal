@@ -93,6 +93,7 @@ class ContentEntityNormalizer extends NormalizerBase {
       if (in_array($field->getFieldDefinition()->getName(), $exclude)) {
         continue;
       }
+      // @todo: Method 'normalize' not found in class \Symfony\Component\Serializer\SerializerInterface
       $normalized_property = $this->serializer->normalize($field, $format, $context);
       $normalized = NestedArray::mergeDeep($normalized, $normalized_property);
     }
@@ -187,6 +188,7 @@ class ContentEntityNormalizer extends NormalizerBase {
       // is already prepared for the field, any data added to it is
       // automatically added to the entity.
       $context['target_instance'] = $field;
+      // @todo: Method 'denormalize' not found in class \Symfony\Component\Serializer\SerializerInterface
       $this->serializer->denormalize($field_data, $field_class, $format, $context);
     }
 
