@@ -7,6 +7,7 @@
 
 namespace Drupal\hal\Normalizer;
 
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 

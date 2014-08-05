@@ -7,10 +7,7 @@
 
 namespace Drupal\hal\Normalizer;
 
-use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Language\Language;
 use Drupal\rest\LinkManager\LinkManagerInterface;
-use Symfony\Component\Serializer\Exception\UnexpectedValueException;
 
 /**
  * Converts the Drupal entity object structure to a HAL array structure.
