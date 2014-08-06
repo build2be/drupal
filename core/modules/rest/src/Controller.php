@@ -133,7 +133,11 @@ class Controller extends ContainerAware
     /** @var \Drupal\Core\Field\FieldDefinitionInterface $field */
     foreach ($fields as $id => $field) {
       // TODO: fix the HAL/serializer path to match to /docs/rest/api/$entity_type/$bundle/$field
-      $item = l($field->getName(), "rest/relation/$entity_type/$bundle/$id");
+      $line = '<dt>' . l($field->getName(), "rest/relation/$entity_type/$bundle/$id") . '</dt>';
+      $line .= '<dd>' . $field->getDescription() . '</dd>';
+      $item = array(
+        '#markup' => $line,
+      );
 
       if ($field->isRequired()) {
         $required[] = $item;
