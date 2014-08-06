@@ -8,9 +8,12 @@
 namespace Drupal\rest;
 
 use Drupal\Core\Entity\Field\Type\Field;
+use Drupal\Core\Routing\RouteMatch;
 use Symfony\Component\DependencyInjection\ContainerAware;
+use Symfony\Component\Routing\Route;
 
-class Controller extends ContainerAware {
+class Controller extends ContainerAware
+{
 
   // TODO use DiC
   //      see getRestBundles()
@@ -25,7 +28,8 @@ class Controller extends ContainerAware {
    *
    * @return array
    */
-  public function docRoot() {
+  public function docRoot()
+  {
     $config = \Drupal::config('rest.settings')->get('resources') ?: array();
 
     $items = array();
@@ -51,7 +55,8 @@ class Controller extends ContainerAware {
    * @param string $entity_type
    * @return array
    */
-  public function docEntity($entity_type) {
+  public function docEntity($entity_type)
+  {
     // TODO: validate access permission
     $config = \Drupal::config('rest.settings')->get('resources') ?: array();
 
@@ -82,22 +87,33 @@ class Controller extends ContainerAware {
       // TODO fixed path to align in /docs/rest/api/$entity_type/$bundle/$field
       $doc_refs[] = l($bundle, '/docs/rest/api/types/' . $entity_type . '/' . $bundle);
     }
+
     $bundles = array(
       '#theme' => 'item_list',
       '#title' => t("Resource bundles are:"),
       '#items' => $doc_refs,
     );
 
+    $help = $this->getModuleHelp($entity_type);
+
     $result = array(
       '#theme' => 'item_list',
       '#title' => t('Rest resources for type %entity.', array('%entity' => $entity_type)),
       '#items' => array(
+        array('#markup' => $help),
         $bundles,
         $m,
       ),
     );
 
     return $result;
+  }
+
+  private function getModuleHelp($module)
+  {
+    // Drupal help is a hack
+    $routeMatch = new RouteMatch('blaat', new Route('blaat'));
+    return \Drupal::moduleHandler()->invoke($module, 'help', array('help.page.' . $module, $routeMatch));
   }
 
   /**
@@ -107,7 +123,8 @@ class Controller extends ContainerAware {
    * @param $bundle
    * @return array
    */
-  public function docBundle($entity_type, $bundle) {
+  public function docBundle($entity_type, $bundle)
+  {
     $required = array();
     $optional = array();
 
@@ -120,8 +137,7 @@ class Controller extends ContainerAware {
 
       if ($field->isRequired()) {
         $required[] = $item;
-      }
-      else {
+      } else {
         $optional[] = $item;
       }
     }
@@ -153,7 +169,8 @@ class Controller extends ContainerAware {
    * @param $field_name
    * @return mixed
    */
-  public function docField($entity_type, $bundle, $field) {
+  public function docField($entity_type, $bundle, $field)
+  {
     // TODO fix for drupal_set_title
     // drupal_set_title($field_name);
 
@@ -186,7 +203,8 @@ class Controller extends ContainerAware {
     return $result;
   }
 
-  protected function getRestBundles() {
+  protected function getRestBundles()
+  {
     // TODO use DIC
     $bundles = \Drupal::entityManager()->getAllBundleInfo();
 
@@ -198,7 +216,8 @@ class Controller extends ContainerAware {
     return $bundles;
   }
 
-  protected function getEntityManager() {
+  protected function getEntityManager()
+  {
     // TODO use DIC
     return \Drupal::entityManager();
   }
