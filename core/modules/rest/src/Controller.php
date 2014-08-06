@@ -189,11 +189,13 @@ class Controller extends ContainerAware
     // TODO: how to check for field permissions?
 
     $rows = array();
-    $rows[] = array("Type", $field_definition->getType());
+    $rows[] = array("Name", $field_definition->getName());
     $rows[] = array("Description", $field_definition->getDescription());
-    foreach ($field_definition->getSettings() as $key => $value) {
-      $rows[] = array("Settings - $key", print_r($value, TRUE));
-    }
+    $rows[] = array("Type", $field_definition->getType());
+    $rows[] = array("Bundle", $field_definition->getBundle());
+    $settings = $this->arrayToTree($field_definition->getSettings());
+    $rows[] = array("Settings", $this->arrayToTree($field_definition->getSettings()));
+    $rows[] = array("Settings - print_r", print_r($field_definition->getSettings(), TRUE));
 
     $result = array(
       '#theme' => 'table',
@@ -204,6 +206,24 @@ class Controller extends ContainerAware
       )),
       '#rows' => $rows,
     );
+    return $result;
+  }
+
+  /**
+   * @param $data
+   * @param int $depth
+   * @return string
+   */
+  private function arrayToTree($data, $depth = 0) {
+    $result = '';
+    if (is_array($data)) {
+      foreach($data as $key => $value) {
+        $result .= str_repeat('&nbsp;', $depth) . "$key: " . $this->arrayToTree($value, $depth++);
+      }
+    }
+    else {
+      $result = $data . '<br/>';
+    }
     return $result;
   }
 
