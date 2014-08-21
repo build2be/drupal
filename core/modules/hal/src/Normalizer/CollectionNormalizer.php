@@ -29,7 +29,7 @@ class CollectionNormalizer extends NormalizerBase {
   protected $linkManager;
 
   /**
-   * Constructs an EntityNormalizer object.
+   * Constructs an CollectionNormalizer object.
    *
    * @param \Drupal\rest\LinkManager\LinkManagerInterface $link_manager
    *   The hypermedia link manager.
