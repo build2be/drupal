@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Contains \Drupal\rest\LinkManager\LinkManager.
@@ -79,4 +80,5 @@ class LinkManager implements LinkManagerInterface {
   public function getCollectionItemRelation($collection_id) {
     return $this->collectionLinkManager->getCollectionItemRelation($collection_id);
   }
+
 }
