@@ -52,7 +52,7 @@ class FieldItemNormalizer extends NormalizerBase {
     if (!isset($context['target_instance'])) {
       throw new InvalidArgumentException('$context[\'target_instance\'] must be set to denormalize with the FieldItemNormalizer');
     }
-    /** @var FieldItemInterface $field_item */
+    /** @var \Drupal\Core\Field\FieldItemInterface $field_item */
     $field_item = $context['target_instance'];
     if ($field_item->getParent() == NULL) {
       throw new InvalidArgumentException('The field item passed in via $context[\'target_instance\'] must have a parent set.');
@@ -63,7 +63,7 @@ class FieldItemNormalizer extends NormalizerBase {
       $langcode = $data['lang'];
       unset($data['lang']);
 
-      /** @var FieldDefinitionInterface $field_definition */
+      /** @var \Drupal\Core\Field\FieldDefinitionInterface $field_definition */
       $field_definition = $field_item->getFieldDefinition();
       if ($field_definition->isTranslatable()) {
         $field_item = $this->createTranslatedInstance($field_item, $langcode);
