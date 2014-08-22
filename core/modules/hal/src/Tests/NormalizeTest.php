@@ -29,10 +29,10 @@ class NormalizeTest extends NormalizerTestBase {
    * Tests the normalize function.
    */
   public function testNormalize() {
-    /** @var ContentEntityBase $target_entity_de */
+    /** @var \Drupal\Core\Entity\ContentEntityBase $target_entity_de */
     $target_entity_de = entity_create('entity_test', (array('langcode' => 'de', 'field_test_entity_reference' => NULL)));
     $target_entity_de->save();
-    /** @var ContentEntityBase $target_entity_en */
+    /** @var \Drupal\Core\Entity\ContentEntityBase $target_entity_en */
     $target_entity_en = entity_create('entity_test', (array('langcode' => 'en', 'field_test_entity_reference' => NULL)));
     $target_entity_en->save();
 
@@ -56,7 +56,7 @@ class NormalizeTest extends NormalizerTestBase {
       )
     );
 
-    /** @var ContentEntityBase $entity */
+    /** @var \Drupal\Core\Entity\ContentEntityBase $entity */
     $entity = entity_create('entity_test', $values);
     $entity->save();
     // Add an English value for name and entity reference properties.
@@ -172,7 +172,7 @@ class NormalizeTest extends NormalizerTestBase {
   /**
    * Constructs the entity URI.
    *
-   * @param ContentEntityBase $entity
+   * @param \Drupal\Core\Entity\ContentEntityBase $entity
    *   The entity.
    *
    * @return string
