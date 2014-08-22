@@ -12,7 +12,7 @@ use Drupal\Core\Entity\ContentEntityBase;
 /**
  * Tests that entities can be normalized in HAL.
  *
- * @group hal
+ * @coversDefaultClass \Drupal\hal\Normalizer\ContentEntityNormalizer
  */
 class NormalizeTest extends NormalizerTestBase {
 
