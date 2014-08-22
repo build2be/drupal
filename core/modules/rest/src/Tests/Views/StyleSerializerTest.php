@@ -62,17 +62,6 @@ class StyleSerializerTest extends PluginTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'Style: Serializer plugin',
-      'description' => 'Tests the serializer style plugin.',
-      'group' => 'Views Plugins',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     parent::setUp();
 
