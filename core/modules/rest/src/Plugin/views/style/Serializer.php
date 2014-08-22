@@ -166,7 +166,7 @@ class Serializer extends StylePluginBase {
     // Instantiate collection object.
     $collection = new Collection($view_id . '_' . $display_id);
 
-    $collection->setTitle($display->getOption('title'));
+    $collection->setTitle($this->view->getTitle());
     $collection->setDescription($display->getOption('display_description'));
 
     // Route as defined in e.g. \Drupal\rest\Plugin\views\display\RestExport.
