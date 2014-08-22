@@ -65,10 +65,16 @@ class ContentEntityNormalizer extends NormalizerBase {
    * {@inheritdoc}
    *
    * @param \Drupal\Core\Entity\ContentEntityInterface $entity
-   * @param null $format
+   *   We only process Content Entitities here.
+   * @param string $format
+   *   Format the normalization result will be encoded as.
    * @param array $context
+   *   Context options for the normalizer.
    *
    * @return array|scalar
+   *
+   * @see \Drupal\hal\HalSubscriber
+   *   Defines the format to support.
    */
   public function normalize($entity, $format = NULL, array $context = array()) {
     // Create the array of normalized fields, starting with the URI.
