@@ -170,7 +170,9 @@ class Serializer extends StylePluginBase {
     $collection->setDescription($display->getOption('display_description'));
 
     // Route as defined in e.g. \Drupal\rest\Plugin\views\display\RestExport.
-    $route_name = 'view.' . $view_id . '.' . $display_id;
+    $state = \Drupal::state();
+    $route_names = $state->get('views.view_route_names');
+    $route_name = $route_names["$view_id.$display_id"];
 
     // Get base url path for the view; getUrl returns a path not an absolute
     // URL (and no page information).
