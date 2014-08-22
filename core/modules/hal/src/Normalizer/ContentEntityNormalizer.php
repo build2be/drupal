@@ -52,8 +52,8 @@ class ContentEntityNormalizer extends NormalizerBase {
    *
    * @param \Drupal\rest\LinkManager\LinkManagerInterface $link_manager
    *   The hypermedia link manager.
-   * @param EntityManagerInterface $entity_manager
-   * @param ModuleHandlerInterface $module_handler
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    */
   public function __construct(LinkManagerInterface $link_manager, EntityManagerInterface $entity_manager, ModuleHandlerInterface $module_handler) {
     $this->linkManager = $link_manager;
