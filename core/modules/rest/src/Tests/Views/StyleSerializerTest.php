@@ -155,7 +155,6 @@ class StyleSerializerTest extends PluginTestBase {
     // Test the entity rows.
     $view = Views::getView('test_serializer_display_entity');
     $view->setDisplay('rest_export_1');
-    $view->initDisplay();
     $this->executeView($view);
 
     // Get the serializer service.
@@ -190,7 +189,6 @@ class StyleSerializerTest extends PluginTestBase {
     // Test the entity rows - with paging.
     $view = Views::getView('test_serializer_display_entity');
     $view->setDisplay('rest_export_paging');
-    $view->initDisplay();
     $this->executeView($view);
 
     // Get the serializer service.
@@ -239,7 +237,6 @@ class StyleSerializerTest extends PluginTestBase {
     // Test the entity rows - with paging.
     $view = Views::getView('test_serializer_display_entity');
     $view->setDisplay('rest_export_paging');
-    $view->initDisplay();
     $view->setCurrentPage(1);
     $this->executeView($view);
 
@@ -270,7 +267,6 @@ class StyleSerializerTest extends PluginTestBase {
     // Test the entity rows - with paging.
     $view = Views::getView('test_serializer_display_entity');
     $view->setDisplay('rest_export_paging');
-    $view->initDisplay();
     $view->setCurrentPage(9);
     $this->executeView($view);
 
@@ -491,7 +487,6 @@ class StyleSerializerTest extends PluginTestBase {
     // Test the entity rows - with paging.
     $view = Views::getView('test_serializer_display_field');
     $view->setDisplay('rest_export_paging');
-    $view->initDisplay();
     $view->setCurrentPage(1);
     $this->executeView($view);
 
@@ -522,7 +517,6 @@ class StyleSerializerTest extends PluginTestBase {
     // Test the entity rows - with paging.
     $view = Views::getView('test_serializer_display_field');
     $view->setDisplay('rest_export_paging');
-    $view->initDisplay();
     $view->setCurrentPage(4);
     $this->executeView($view);
 
