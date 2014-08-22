@@ -154,7 +154,6 @@ class Serializer extends StylePluginBase {
     $this->view = $this->view;
 
     $rows = array();
-    // @todo Determine how to handle field-based views.
     foreach ($this->view->result as $row) {
       $rows[] = $this->view->rowPlugin->render($row);
     }
