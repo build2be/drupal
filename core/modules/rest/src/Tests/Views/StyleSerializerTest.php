@@ -157,7 +157,6 @@ class StyleSerializerTest extends PluginTestBase {
     $view->setDisplay('rest_export_1');
     $this->executeView($view);
 
-    // Get the serializer service.
     $serializer = $this->container->get('serializer');
     // Create the entity collection.
     $collection = $this->getCollectionFromView($view);
