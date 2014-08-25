@@ -1898,6 +1898,18 @@ function file_permission() {
       'title' => t('Access the Files overview page'),
       'description' => t('Get an overview of <a href="!url">all files</a>.', array('!url' => url('admin/content/files'))),
     ),
+    'view file' => array(
+      'title' => t('View file entity'),
+      'description' => t('Useful for services like REST.'),
+    ),
+    'create file' => array(
+      'title' => t('Create file entity'),
+      'description' => t('Useful for services like REST.'),
+    ),
+    'edit file' => array(
+      'title' => t('Edit file entity'),
+      'description' => t('Useful for services like REST.'),
+    ),
   );
 
   return $perms;

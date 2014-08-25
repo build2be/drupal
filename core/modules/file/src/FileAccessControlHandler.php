@@ -33,8 +33,23 @@ class FileAccessControlHandler extends EntityAccessControlHandler {
           }
         }
       }
-
       return FALSE;
+    }
+    else {
+      $account = $this->prepareUser($account);
+
+      if ($operation == 'view') {
+        return $account->hasPermission('view file');
+      }
+      elseif ($operation == 'create') {
+        return $account->hasPermission('create file');
+      }
+      elseif ($operation == 'edit') {
+        return $account->hasPermission('edit file');
+      }
+      elseif ($operation == 'delete') {
+        return $account->hasPermission('edit file');
+      }
     }
   }
 
