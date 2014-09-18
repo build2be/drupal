@@ -22,6 +22,8 @@ services:
   rest.link_manager.relation:
     class: Drupal\rest\LinkManager\RelationLinkManager
     arguments: ['@cache.default', '@entity.manager']
+  rest.link_manager.collection:
+    class: Drupal\rest\LinkManager\CollectionLinkManager
   rest.resource_routes:
     class: Drupal\rest\Routing\ResourceRoutes
     arguments: ['@plugin.manager.rest', '@config.factory', '@logger.channel.rest']
