@@ -247,7 +247,7 @@ class RestExport extends PathPluginBase {
    * {@inheritdoc}
    */
   public function collectRoutes(RouteCollection $collection) {
-    parent::collectRoutes($collection);
+    $result = parent::collectRoutes($collection);
     $view_id = $this->view->storage->id();
     $display_id = $this->display['id'];
 
@@ -262,6 +262,7 @@ class RestExport extends PathPluginBase {
       // Add the new requirements to the route.
       $route->addRequirements($requirements);
     }
+    return $result;
   }
 
   /**
