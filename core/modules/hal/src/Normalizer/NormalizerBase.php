@@ -10,11 +10,12 @@ namespace Drupal\hal\Normalizer;
 use Drupal\serialization\EntityResolver\EntityResolverInterface;
 use Drupal\serialization\Normalizer\NormalizerBase as SerializationNormalizerBase;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
+use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 /**
  * Base class for Normalizers.
  */
-abstract class NormalizerBase extends SerializationNormalizerBase implements DenormalizerInterface {
+abstract class NormalizerBase extends SerializationNormalizerBase implements NormalizerInterface, DenormalizerInterface {
 
   /**
    * The formats that the Normalizer can handle.

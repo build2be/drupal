@@ -108,7 +108,6 @@ class ContentEntityNormalizer extends NormalizerBase {
       if (in_array($field->getFieldDefinition()->getName(), $exclude)) {
         continue;
       }
-      // @todo: Method 'normalize' not found in class \Symfony\Component\Serializer\SerializerInterface
       $normalized_property = $this->serializer->normalize($field, $format, $context);
       $normalized = NestedArray::mergeDeep($normalized, $normalized_property);
     }
@@ -264,4 +263,5 @@ class ContentEntityNormalizer extends NormalizerBase {
 
     return $typed_data_ids;
   }
+
 }
