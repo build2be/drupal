@@ -30,3 +30,8 @@ services:
   logger.channel.rest:
     parent: logger.channel_base
     arguments: ['rest']
+  rest.options_subscriber:
+    class: Drupal\rest\Routing\OptionsRequestSubscriber
+    arguments: ['@access_manager', '@current_user']
+    tags:
+      - {name: event_subscriber}

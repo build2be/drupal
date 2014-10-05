@@ -194,6 +194,21 @@ class EntityResource extends ResourceBase {
   }
 
   /**
+   * Responds to entity OPTIONS requests.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity object.
+   *
+   * @return \Drupal\rest\ResourceResponse
+   *   The HTTP response object.
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+   */
+  public function options(EntityInterface $entity) {
+    return new ResourceResponse(NULL, 204);
+  }
+
+  /**
    * Verifies that the whole entity does not violate any validation constraints.
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
