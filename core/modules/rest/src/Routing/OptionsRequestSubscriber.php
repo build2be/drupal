@@ -96,7 +96,8 @@ class OptionsRequestSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    return array(KernelEvents::REQUEST => array(array('onKernelRequest', -10000)));
+    $events[KernelEvents::REQUEST][] = array('onKernelRequest', 1000);
+    return $events;
   }
 
 }
