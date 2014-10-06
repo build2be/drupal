@@ -14,6 +14,9 @@ rest.settings:
 rest_resource:
   type: mapping
   mapping:
+    OPTIONS:
+      type: rest_request
+      label: 'OPTIONS method settings'
     GET:
       type: rest_request
       label: 'GET method settings'
