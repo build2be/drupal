@@ -51,6 +51,13 @@ class EntityDerivative implements ContainerDeriverInterface {
   protected $routeBuilder;
 
   /**
+   * A logger instance.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected $logger;
+
+  /**
    * Constructs an EntityDerivative object.
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
@@ -60,10 +67,11 @@ class EntityDerivative implements ContainerDeriverInterface {
    * @param \Drupal\Core\Routing\RouteBuilderInterface $route_builder
    *   The route builder.
    */
-  public function __construct(EntityManagerInterface $entity_manager, RouteProviderInterface $route_provider, RouteBuilderInterface $route_builder) {
+  public function __construct(EntityManagerInterface $entity_manager, RouteProviderInterface $route_provider, RouteBuilderInterface $route_builder, LoggerInterface $logger) {
     $this->entityManager = $entity_manager;
     $this->routeProvider = $route_provider;
     $this->routeBuilder = $route_builder;
+    $this->logger = $logger;
   }
 
   /**
@@ -73,7 +81,8 @@ class EntityDerivative implements ContainerDeriverInterface {
     return new static(
       $container->get('entity.manager'),
       $container->get('router.route_provider'),
-      $container->get('router.builder')
+      $container->get('router.builder'),
+      $container->get('logger.factory')->get('aggregator')
     );
   }
 
@@ -125,6 +134,7 @@ class EntityDerivative implements ContainerDeriverInterface {
                 $this->derivatives[$entity_type_id]['uri_paths'][$link_relation] = $route->getPath();
               }
               else {
+                $this->logger->error('Route name @route_name not found', array(':route_name' => $route_name));
                 throw new RouteNotFoundException($route_name);
               }
             }
