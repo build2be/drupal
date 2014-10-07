@@ -115,12 +115,18 @@ class EntityDerivative implements ContainerDeriverInterface {
             // @todo remove the try/catch as part of
             // http://drupal.org/node/2158571
             try {
-              if (($collection = $this->routeBuilder->getCollectionDuringRebuild()) && $route = $collection->get($route_name)) {
+              if (($collection = $this->routeBuilder->getCollectionDuringRebuild())) {
+                $route = $collection->get($route_name);
               }
               else {
                 $route = $this->routeProvider->getRouteByName($route_name);
               }
-              $this->derivatives[$entity_type_id]['uri_paths'][$link_relation] = $route->getPath();
+              if ($route) {
+                $this->derivatives[$entity_type_id]['uri_paths'][$link_relation] = $route->getPath();
+              }
+              else {
+                throw new RouteNotFoundException($route_name);
+              }
             }
             catch (RouteNotFoundException $e) {
               // If the route does not exist it means we are in a brittle state
