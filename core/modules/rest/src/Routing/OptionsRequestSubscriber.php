@@ -18,6 +18,12 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Handles OPTIONS requests.
+ *
+ * Option request are allowed regardless of access permissions on
+ * the requested resource and can be requested on any path.
+ *
+ * For example requesting OPTIONS on /node/1 could result into list of methods
+ * depending permissions on other methods like GET, POST, PATCH, DELETE.
  */
 class OptionsRequestSubscriber implements EventSubscriberInterface {
 
@@ -67,7 +73,7 @@ class OptionsRequestSubscriber implements EventSubscriberInterface {
    */
   public function onKernelRequest(GetResponseEvent $event) {
     $request = $event->getRequest();
-    if ($request->getMethod() == 'OPTIONS') {
+    if ($request->isMethod('OPTIONS')) {
       $allowed_methods = implode(' ', $this->getAllowedMethods($request));
       $response = new Response(NULL, 200, array('Allow' => $allowed_methods));
       $event->setResponse($response);
