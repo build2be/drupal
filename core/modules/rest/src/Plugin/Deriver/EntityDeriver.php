@@ -77,6 +77,9 @@ class EntityDeriver implements ContainerDeriverInterface {
           'id' => 'entity:' . $entity_type_id,
           'entity_type' => $entity_type_id,
           'serialization_class' => $entity_type->getClass(),
+          'serialization_context' => array(
+            'entity_type' => $entity_type->id(),
+          ),
           'label' => $entity_type->getLabel(),
         );
 

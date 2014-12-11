@@ -60,8 +60,17 @@ class RequestHandler implements ContainerAwareInterface {
       if (empty($method_settings['supported_formats']) || in_array($format, $method_settings['supported_formats'])) {
         $definition = $resource->getPluginDefinition();
         $class = $definition['serialization_class'];
+        $context = array();
+        // Get context information for deserialization from the plugin
+        // definition.
+        if (!empty($definition['serialization_context'])) {
+          $context = $definition['serialization_context'];
+        }
+        // Always add the resource ID to the deserialization context.
+        $context['resource_id'] = $plugin;
+        $context['request_method'] = $method;
         try {
-          $unserialized = $serializer->deserialize($received, $class, $format, array('request_method' => $method));
+          $unserialized = $serializer->deserialize($received, $class, $format, $context);
         }
         catch (UnexpectedValueException $e) {
           $error['error'] = $e->getMessage();
