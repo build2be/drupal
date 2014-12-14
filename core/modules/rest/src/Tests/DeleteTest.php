@@ -70,7 +70,7 @@ class DeleteTest extends RESTTestBase {
     $this->enableService(FALSE);
     $account = $this->drupalCreateUser();
     $this->drupalLogin($account);
-    $this->httpRequest('entity/user/' . $account->id(), 'DELETE');
+    $this->httpRequest('user/' . $account->id(), 'DELETE');
     $user = entity_load('user', $account->id(), TRUE);
     $this->assertEqual($account->id(), $user->id(), 'User still exists in the database.');
     $this->assertResponse(404);

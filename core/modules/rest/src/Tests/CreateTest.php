@@ -43,7 +43,7 @@ class CreateTest extends RESTTestBase {
       $entity = entity_create($entity_type, $entity_values);
       $serialized = $serializer->serialize($entity, $this->defaultFormat, ['account' => $account]);
       // Create the entity over the REST API.
-      $this->httpRequest('entity/' . $entity_type, 'POST', $serialized, $this->defaultMimeType);
+      $this->httpRequest($entity_type, 'POST', $serialized, $this->defaultMimeType);
       $this->assertResponse(201);
 
       // Get the new entity ID from the location header and try to read it from
@@ -71,7 +71,7 @@ class CreateTest extends RESTTestBase {
         $context = ['account' => $account];
         $normalized = $serializer->normalize($entity, $this->defaultFormat, $context);
         $normalized['field_test_text'][0]['value'] = 'no access value';
-        $this->httpRequest('entity/' . $entity_type, 'POST', $serializer->serialize($normalized, $this->defaultFormat, $context), $this->defaultMimeType);
+        $this->httpRequest($entity_type, 'POST', $serializer->serialize($normalized, $this->defaultFormat, $context), $this->defaultMimeType);
         $this->assertResponse(403);
         $this->assertFalse(entity_load_multiple($entity_type, NULL, TRUE), 'No entity has been created in the database.');
 
@@ -79,7 +79,7 @@ class CreateTest extends RESTTestBase {
         $entity->field_test_text->value = $entity_values['field_test_text'][0]['value'];
         $entity->field_test_text->format = 'full_html';
         $serialized = $serializer->serialize($entity, $this->defaultFormat, $context);
-        $this->httpRequest('entity/' . $entity_type, 'POST', $serialized, $this->defaultMimeType);
+        $this->httpRequest($entity_type, 'POST', $serialized, $this->defaultMimeType);
         $this->assertResponse(422);
         $this->assertFalse(entity_load_multiple($entity_type, NULL, TRUE), 'No entity has been created in the database.');
 
@@ -89,25 +89,25 @@ class CreateTest extends RESTTestBase {
       }
 
       // Try to send invalid data that cannot be correctly deserialized.
-      $this->httpRequest('entity/' . $entity_type, 'POST', 'kaboom!', $this->defaultMimeType);
+      $this->httpRequest($entity_type, 'POST', 'kaboom!', $this->defaultMimeType);
       $this->assertResponse(400);
 
       // Try to send no data at all, which does not make sense on POST requests.
-      $this->httpRequest('entity/' . $entity_type, 'POST', NULL, $this->defaultMimeType);
+      $this->httpRequest($entity_type, 'POST', NULL, $this->defaultMimeType);
       $this->assertResponse(400);
 
       // Try to send invalid data to trigger the entity validation constraints.
       // Send a UUID that is too long.
       $entity->set('uuid', $this->randomMachineName(129));
       $invalid_serialized = $serializer->serialize($entity, $this->defaultFormat, $context);
-      $response = $this->httpRequest('entity/' . $entity_type, 'POST', $invalid_serialized, $this->defaultMimeType);
+      $response = $this->httpRequest($entity_type, 'POST', $invalid_serialized, $this->defaultMimeType);
       $this->assertResponse(422);
       $error = Json::decode($response);
       $this->assertEqual($error['error'], "Unprocessable Entity: validation failed.\nuuid.0.value: <em class=\"placeholder\">UUID</em>: may not be longer than 128 characters.\n");
 
       // Try to create an entity without proper permissions.
       $this->drupalLogout();
-      $this->httpRequest('entity/' . $entity_type, 'POST', $serialized, $this->defaultMimeType);
+      $this->httpRequest($entity_type, 'POST', $serialized, $this->defaultMimeType);
       $this->assertResponse(403);
       $this->assertFalse(entity_load_multiple($entity_type, NULL, TRUE), 'No entity has been created in the database.');
     }
@@ -115,7 +115,7 @@ class CreateTest extends RESTTestBase {
     // Try to create a resource which is not REST API enabled.
     $this->enableService(FALSE);
     $this->drupalLogin($account);
-    $this->httpRequest('entity/entity_test', 'POST', $serialized, $this->defaultMimeType);
+    $this->httpRequest('entity_test', 'POST', $serialized, $this->defaultMimeType);
     $this->assertResponse(404);
     $this->assertFalse(entity_load_multiple($entity_type, NULL, TRUE), 'No entity has been created in the database.');
 

@@ -111,7 +111,6 @@ abstract class ResourceBase extends PluginBase implements ContainerFactoryPlugin
 
       switch ($method) {
         case 'POST':
-          $route->setPattern($create_path);
           // Restrict the incoming HTTP Content-type header to the known
           // serialization formats.
           $route->addRequirements(array('_content_type_format' => implode('|', $this->serializerFormats)));
