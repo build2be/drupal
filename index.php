@@ -14,7 +14,11 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+if (strpos($_SERVER['REQUEST_URI'], 'backbone-min.map') !== FALSE)
+  return;
+
 $autoloader = require_once __DIR__ . '/core/vendor/autoload.php';
+
 
 try {
 
