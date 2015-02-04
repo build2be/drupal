@@ -7,6 +7,7 @@
 
 namespace Drupal\Core\Routing;
 
+use Drupal\Component\Utility\String;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException;
 use Symfony\Component\Routing\Route;
@@ -47,7 +48,7 @@ class ContentTypeHeaderMatcher implements RouteFilterInterface {
     // We do not throw a
     // \Symfony\Component\Routing\Exception\ResourceNotFoundException here
     // because we don't want to return a 404 status code, but rather a 415.
-    throw new UnsupportedMediaTypeHttpException('No route found that matches the Content-Type header.');
+    throw new UnsupportedMediaTypeHttpException(String::format('No route found that matches the Content-Type header "@format"', array('@format' => $format)));
   }
 
   /**
