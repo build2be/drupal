@@ -38,7 +38,7 @@ class UserLoginResource extends ResourceBase {
         if (!empty($operation['credentials'])) {
           return $this->login($operation['credentials']);
         }
-        return new ResourceResponse('Missing name and pass.', 400, array());
+        return new ResourceResponse('credentials.', 400, array());
 
       case 'logout':
         return $this->logout();
@@ -58,11 +58,11 @@ class UserLoginResource extends ResourceBase {
   protected function login(array $credentials = array()) {
     // Verify that the username is filled.
     if (!array_key_exists('name', $credentials)) {
-      return new ResourceResponse('Missing username.', 400, array());
+      return new ResourceResponse('Missing credentials.name.', 400, array());
     }
     // Verify that the username is filled.
     if (!array_key_exists('pass', $credentials)) {
-      return new ResourceResponse('Missing pass.', 400, array());
+      return new ResourceResponse('Missing credentials.pass.', 400, array());
     }
 
     // Flood control.
