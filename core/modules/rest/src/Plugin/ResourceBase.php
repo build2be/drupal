@@ -210,4 +210,18 @@ abstract class ResourceBase extends PluginBase implements ContainerFactoryPlugin
     return $route;
   }
 
+  /**
+   * Throws an exception if the current user triggers flood control.
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
+   */
+  protected function restFloodControl($config, $event) {
+    $limit = $config->get('user_limit');
+    $interval = $config->get('user_window');
+    if (!\Drupal::flood()->isAllowed($name, $limit, $interval)) {
+      return TRUE;
+    }
+    return FALSE;
+  }
+
 }
