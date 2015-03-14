@@ -92,15 +92,7 @@ class ContentEntityNormalizer extends NormalizerBase {
     else {
       $fields = $entity->getFields();
     }
-    // Ignore the entity ID and revision ID.
-    $exclude = array($entity->getEntityType()->getKey('id'), $entity->getEntityType()->getKey('revision'));
     foreach ($fields as $field) {
-      // Continue if this is an excluded field or the current user does not have
-      // access to view it.
-      if (in_array($field->getFieldDefinition()->getName(), $exclude) || !$field->access('view', $context['account'])) {
-        continue;
-      }
-
       $normalized_property = $this->serializer->normalize($field, $format, $context);
       $normalized = NestedArray::mergeDeep($normalized, $normalized_property);
     }

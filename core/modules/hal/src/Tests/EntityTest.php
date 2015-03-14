@@ -81,9 +81,8 @@ class EntityTest extends NormalizerTestBase {
     $denormalized_node = $this->serializer->denormalize($normalized, 'Drupal\node\Entity\Node', $this->format);
 
     // Verify that the ID and revision ID were skipped by the normalizer.
-    $this->assertEqual(NULL, $denormalized_node->id());
-    $this->assertEqual(NULL, $denormalized_node->getRevisionId());
-
+    $this->assertNotNull($denormalized_node->id(), 'node ID found');
+    $this->assertNotNull($denormalized_node->getRevisionId(), 'node Revision ID found');
     // Loop over the remaining fields and verify that they are identical.
     foreach ($original_values as $field_name => $field_values) {
       $this->assertEqual($field_values, $denormalized_node->get($field_name)->getValue());
@@ -125,8 +124,8 @@ class EntityTest extends NormalizerTestBase {
 
     $denormalized_term = $this->serializer->denormalize($normalized, 'Drupal\taxonomy\Entity\Term', $this->format, ['account' => $account]);
 
-    // Verify that the ID and revision ID were skipped by the normalizer.
-    $this->assertEqual(NULL, $denormalized_term->id());
+    // Verify that the ID is included by the normalizer.
+    $this->assertNotNull($denormalized_term->id(), 'term ID found');
 
     // Loop over the remaining fields and verify that they are identical.
     foreach ($original_values as $field_name => $field_values) {
@@ -208,8 +207,8 @@ class EntityTest extends NormalizerTestBase {
 
     $denormalized_comment = $this->serializer->denormalize($normalized, 'Drupal\comment\Entity\Comment', $this->format, ['account' => $account]);
 
-    // Verify that the ID and revision ID were skipped by the normalizer.
-    $this->assertEqual(NULL, $denormalized_comment->id());
+    // Verify that the ID is included by the normalizer.
+    $this->assertNotNull($denormalized_comment->id(), 'comment ID found');
 
     // Loop over the remaining fields and verify that they are identical.
     foreach ($original_values as $field_name => $field_values) {
