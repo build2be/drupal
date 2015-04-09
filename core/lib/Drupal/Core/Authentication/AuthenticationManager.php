@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * If no provider set an active user then the user is set to anonymous.
  */
-class AuthenticationManager implements AuthenticationProviderInterface, AuthenticationProviderFilterInterface, AuthenticationProviderChallengeInterface {
+class AuthenticationManager implements AuthenticationManagerInterface {
 
   /**
    * Array of all registered authentication providers, keyed by ID.
@@ -80,14 +80,7 @@ class AuthenticationManager implements AuthenticationProviderInterface, Authenti
   }
 
   /**
-   * Adds a provider to the array of registered providers.
-   *
-   * @param \Drupal\Core\Authentication\AuthenticationProviderInterface $provider
-   *   The provider object.
-   * @param string $id
-   *   Identifier of the provider.
-   * @param int $priority
-   *   The providers priority.
+   * {@inheritdoc}
    */
   public function addProvider(AuthenticationProviderInterface $provider, $id, $priority = 0) {
     // Remove the 'authentication.' prefix from the provider ID.
@@ -104,6 +97,13 @@ class AuthenticationManager implements AuthenticationProviderInterface, Authenti
     if ($provider instanceof AuthenticationProviderChallengeInterface) {
       $this->challengers[$id] = $provider;
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getProviderKeys() {
+    return array_keys($this->getSortedProviders());
   }
 
   /**
