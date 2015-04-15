@@ -28,6 +28,7 @@ interface AuthenticationManagerInterface extends AuthenticationProviderInterface
    * List of provider keys.
    *
    * @return array
+   *   The list of provider keys
    */
   public function getProviderKeys();
 
