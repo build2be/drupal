@@ -7,6 +7,7 @@
 
 namespace Drupal\Core\Render;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\Cache;
@@ -243,6 +244,8 @@ class Renderer implements RendererInterface {
     $elements['#attached'] = isset($elements['#attached']) ? $elements['#attached'] : array();
     $elements['#post_render_cache'] = isset($elements['#post_render_cache']) ? $elements['#post_render_cache'] : array();
 
+    $elements['#debug']['#cache'] = $elements['#cache'];
+
     // Allow #pre_render to abort rendering.
     if (!empty($elements['#printed'])) {
       // The #printed element contains all the bubbleable rendering metadata for
@@ -418,6 +421,14 @@ class Renderer implements RendererInterface {
 
     // Rendering is finished, all necessary info collected!
     $this->bubbleStack();
+
+    // Add debug output.
+    $interesting_keys = ['keys', 'contexts', 'tags', 'max-age'];
+    if (array_intersect(array_keys($elements['#cache']), $interesting_keys) || array_intersect(array_keys($elements['#debug']['#cache']), $interesting_keys)) {
+      $prefix = '<!--RENDERER_START-->' . '<!--' . Json::encode($elements['#cache']) .  '-->' . '<!--' . Json::encode($elements['#debug']['#cache']) .  '-->';
+      $suffix = '<!--RENDERER_END-->';
+      $elements['#markup'] = $prefix . $elements['#markup'] . $suffix;
+    }
 
     $elements['#printed'] = TRUE;
     $elements['#markup'] = SafeMarkup::set($elements['#markup']);
