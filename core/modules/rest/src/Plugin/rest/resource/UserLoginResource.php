@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\rest\Plugin\rest\resource\UserLoginResource.
+ * Contains Drupal\rest\Plugin\rest\resource\UserLoginResource.
  */
 
 namespace Drupal\rest\Plugin\rest\resource;
@@ -12,7 +12,7 @@ use Drupal\rest\Plugin\ResourceBase;
 use Drupal\user\Entity\User;
 
 /**
- * Represents user login as resource.
+ * Allows user logins by setting session cookies.
  *
  * @RestResource(
  *   id = "user_login",
@@ -24,7 +24,15 @@ class UserLoginResource extends ResourceBase {
   /**
    * Responds to the user login POST requests and log in a user.
    *
-   * @param array $operation
+   * @param string[] $operation
+   *   array(
+   *     'op' => 'login', 'logout'
+   *     'credentials' => array(
+   *       'name' => 'your-name',
+   *       'pass' => 'your-password',
+   *     ),
+   *   )
+   *
    *   The operation and username + pass for the login op.
    *
    * @return \Drupal\rest\ResourceResponse
@@ -76,7 +84,7 @@ class UserLoginResource extends ResourceBase {
       user_login_finalize($user);
       return new ResourceResponse('You are logged in as ' . $credentials['name'], 200, array());
     }
-    \Drupal::flood()->register('rest.login_cookie', \Drupal::config('user.flood')->get('user_window'));
+    $this->flood->register('rest.login_cookie', \Drupal::config('user.flood')->get('user_window'));
     return new ResourceResponse('Sorry, unrecognized username or password.', 400, array());
   }
 
