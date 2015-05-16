@@ -14,6 +14,7 @@ use Drupal\hal\Normalizer\EntityReferenceItemNormalizer;
 use Drupal\hal\Normalizer\FieldItemNormalizer;
 use Drupal\hal\Normalizer\FieldNormalizer;
 use Drupal\language\Entity\ConfigurableLanguage;
+use Drupal\rest\LinkManager\CollectionLinkManager;
 use Drupal\rest\LinkManager\LinkManager;
 use Drupal\rest\LinkManager\RelationLinkManager;
 use Drupal\rest\LinkManager\TypeLinkManager;
@@ -135,7 +136,11 @@ abstract class NormalizerTestBase extends KernelTestBase {
     ))->save();
 
     $entity_manager = \Drupal::entityManager();
-    $link_manager = new LinkManager(new TypeLinkManager(new MemoryBackend('default'), \Drupal::moduleHandler(), \Drupal::service('config.factory'), \Drupal::service('request_stack')), new RelationLinkManager(new MemoryBackend('default'), $entity_manager, \Drupal::moduleHandler(), \Drupal::service('config.factory'), \Drupal::service('request_stack')));
+  $link_manager = new LinkManager(
+    new TypeLinkManager(new MemoryBackend('default'), \Drupal::moduleHandler(), \Drupal::service('config.factory'), \Drupal::service('request_stack')),
+    new RelationLinkManager(new MemoryBackend('default'), $entity_manager, \Drupal::moduleHandler(), \Drupal::service('config.factory'), \Drupal::service('request_stack')),
+    new CollectionLinkManager()
+  );
 
     $chain_resolver = new ChainEntityResolver(array(new UuidResolver($entity_manager), new TargetIdResolver()));
 

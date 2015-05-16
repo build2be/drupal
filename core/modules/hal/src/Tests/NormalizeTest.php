@@ -9,10 +9,13 @@ namespace Drupal\hal\Tests;
 
 use Drupal\Core\Url;
 
+use Drupal\Core\Entity\ContentEntityBase;
+
 /**
  * Tests that entities can be normalized in HAL.
  *
- * @group hal
+ * @coversDefaultClass \Drupal\hal\Normalizer\ContentEntityNormalizer
+ * @group HAL
  */
 class NormalizeTest extends NormalizerTestBase {
 
