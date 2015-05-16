@@ -59,7 +59,7 @@ class RequestHandler implements ContainerAwareInterface {
       $method_settings = $config[$plugin][$request->getMethod()];
       if (empty($method_settings['supported_formats']) || in_array($format, $method_settings['supported_formats'])) {
         $definition = $resource->getPluginDefinition();
-        $class = $definition['serialization_class'];
+        $class = isset($definition['serialization_class']) ? $definition['serialization_class'] : NULL;
         try {
           if ($class) {
             $unserialized = $serializer->deserialize($received, $class, $format, array('request_method' => $method));

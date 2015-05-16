@@ -46,10 +46,13 @@ class UserLoginResource extends ResourceBase {
         if (!empty($operation['credentials'])) {
           return $this->login($operation['credentials']);
         }
-        return new ResourceResponse('credentials.', 400, array());
+        return new ResourceResponse('Missing credentials.', 400, array());
 
       case 'logout':
         return $this->logout();
+
+      default:
+        return new ResourceResponse('Unsupported op.', 400, array());
 
     }
   }
