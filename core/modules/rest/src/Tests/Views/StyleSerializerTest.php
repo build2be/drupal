@@ -192,7 +192,8 @@ class StyleSerializerTest extends PluginTestBase {
    * @return string
    */
   protected function viewUrl(ViewExecutable $view, $page = NULL) {
-    $base_url = 'base://'  . $view->getUrl();
+    // TODO: this is hackish as toString return path include start /
+    $base_url = 'base:/'  . $view->getUrl()->toString();
     $options = array(
       'absolute' => TRUE,
     );
@@ -788,7 +789,7 @@ class StyleSerializerTest extends PluginTestBase {
     $this->assertTrue(!isset($build['#markup']) && $rendered_json == $expected, 'Ensure the previewed json is escaped.');
     $view->destroy();
 
-    $expected = $serializer->serialize($collection, 'xml');
+    $expected = SafeMarkup::checkPlain($serializer->serialize($rendered_json, 'xml'));
 
     // Change the request format to xml.
     $view->setDisplay('rest_export_1');
