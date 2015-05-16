@@ -9,6 +9,9 @@ namespace Drupal\rest\Plugin\views\style;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\CacheablePluginInterface;
+use Drupal\Core\Routing\UrlGeneratorInterface;
+use Drupal\Core\State\StateInterface;
+use Drupal\serialization\Collection;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\style\StylePluginBase;
@@ -51,7 +54,21 @@ class Serializer extends StylePluginBase implements CacheablePluginInterface {
    *
    * @var array
    */
-  protected $formats = array();
+  protected $formats = [];
+
+  /**
+   * The URL generator service.
+   *
+   * @var \Drupal\Core\Routing\UrlGeneratorInterface
+   */
+  protected $urlGenerator;
+
+  /**
+   * The state service.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected $state;
 
   /**
    * {@inheritdoc}
@@ -62,19 +79,23 @@ class Serializer extends StylePluginBase implements CacheablePluginInterface {
       $plugin_id,
       $plugin_definition,
       $container->get('serializer'),
-      $container->getParameter('serializer.formats')
+      $container->getParameter('serializer.formats'),
+      $container->get('url_generator'),
+      $container->get('state')
     );
   }
 
   /**
    * Constructs a Plugin object.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, SerializerInterface $serializer, array $serializer_formats) {
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, SerializerInterface $serializer, array $serializer_formats, UrlGeneratorInterface $url_generator, StateInterface $state) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->definition = $plugin_definition + $configuration;
     $this->serializer = $serializer;
     $this->formats = $serializer_formats;
+    $this->urlGenerator = $url_generator;
+    $this->state = $state;
   }
 
   /**
@@ -116,27 +137,7 @@ class Serializer extends StylePluginBase implements CacheablePluginInterface {
    * {@inheritdoc}
    */
   public function render() {
-    $rows = array();
-    // If the Data Entity row plugin is used, this will be an array of entities
-    // which will pass through Serializer to one of the registered Normalizers,
-    // which will transform it to arrays/scalars. If the Data field row plugin
-    // is used, $rows will not contain objects and will pass directly to the
-    // Encoder.
-    foreach ($this->view->result as $row_index => $row) {
-      $this->view->row_index = $row_index;
-      $rows[] = $this->view->rowPlugin->render($row);
-    }
-    unset($this->view->row_index);
-
-    // Get the content type configured in the display or fallback to the
-    // default.
-    if ((empty($this->view->live_preview))) {
-      $content_type = $this->displayHandler->getContentType();
-    }
-    else {
-      $content_type = !empty($this->options['formats']) ? reset($this->options['formats']) : 'json';
-    }
-    return $this->serializer->serialize($rows, $content_type);
+    return $this->serializer->serialize($this->getCollection(), $this->displayHandler->getContentType());
   }
 
   /**
@@ -166,4 +167,86 @@ class Serializer extends StylePluginBase implements CacheablePluginInterface {
     return ['request_format'];
   }
 
+  /**
+   * Instantiate Collection object needed to encapsulate serialization.
+   *
+   * @return \Drupal\serialization\Collection
+   *   Collection object wrapping items/rows of the view.
+   */
+  public function getCollection() {
+    $this->view = $this->view;
+
+    $display = $this->view->getDisplay();
+    // Build full view-display id.
+    $view_id = $this->view->storage->id();
+    $display_id = $display->display['id'];
+
+    // Instantiate collection object.
+    $collection = new Collection($view_id . '_' . $display_id);
+
+    $collection->setTitle($this->view->getTitle());
+    $collection->setDescription($display->getOption('display_description'));
+
+    // Route as defined in e.g. \Drupal\rest\Plugin\views\display\RestExport.
+    $route_names = $this->state->get('views.view_route_names');
+    $route_name = $route_names["$view_id.$display_id"];
+
+    // Get base url path for the view; getUrl returns a path not an absolute
+    // URL (and no page information).
+    $view_base_url = $this->view->getUrl();
+
+    // Inject the page into the canonical URI of the view.
+    if ($this->view->getCurrentPage() > 0) {
+      $uri = $this->urlGenerator->generateFromRoute($route_name, [], array('query' => array('page' => $this->view->getCurrentPage()), 'absolute' => TRUE));
+    }
+    else {
+      $uri = $this->urlGenerator->generateFromRoute($route_name, [], array('absolute' => TRUE));
+    }
+    $collection->setUri($uri);
+
+    $rows = [];
+    foreach ($this->view->result as $row) {
+      $rows[] = $this->view->rowPlugin->render($row);
+    }
+    $collection->setItems($rows);
+
+    $pager = $this->view->getPager();
+
+    // Determine whether we have more items than we are showing, in that case
+    // we are a pageable collection.
+    if ($pager->getTotalItems() > $pager->getItemsPerPage()) {
+      // Calculate pager links.
+      $current_page = $pager->getCurrentPage();
+      // Starting at page=0 we need to decrement.
+      $total = ceil($pager->getTotalItems() / $pager->getItemsPerPage()) - 1;
+
+      $collection->setLink('first', $this->urlGenerator->generateFromRoute($route_name, [], array(
+        'query' => array('page' => 0),
+        'absolute' => TRUE,
+      )));
+
+      // If we are not on the first page add a previous link.
+      if ($current_page > 0) {
+        $collection->setLink('prev', $this->urlGenerator->generateFromRoute($route_name, [], array(
+          'query' => array('page' => $current_page - 1),
+          'absolute' => TRUE,
+        )));
+      }
+
+      // If we are not on the last page add a next link.
+      if ($current_page < $total) {
+        $collection->setLink('next', $this->urlGenerator->generateFromRoute($route_name, [], array(
+          'query' => array('page' => $current_page + 1),
+          'absolute' => TRUE,
+        )));
+      }
+
+      $collection->setLink('last', $this->urlGenerator->generateFromRoute($route_name, [], array(
+        'query' => array('page' => $total),
+        'absolute' => TRUE,
+      )));
+    }
+
+    return $collection;
+  }
 }

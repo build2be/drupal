@@ -256,7 +256,7 @@ class RestExport extends PathPluginBase implements ResponseDisplayPluginInterfac
    * {@inheritdoc}
    */
   public function collectRoutes(RouteCollection $collection) {
-    parent::collectRoutes($collection);
+    $result = parent::collectRoutes($collection);
     $view_id = $this->view->storage->id();
     $display_id = $this->display['id'];
 
@@ -274,6 +274,8 @@ class RestExport extends PathPluginBase implements ResponseDisplayPluginInterfac
         $route->setRequirement('_format', implode('|', $formats + ['html']));
       }
     }
+
+    return $result;
   }
 
   /**

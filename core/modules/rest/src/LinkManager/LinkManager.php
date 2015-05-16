@@ -23,16 +23,26 @@ class LinkManager implements LinkManagerInterface {
   protected $relationLinkManager;
 
   /**
+   * The collection link manager.
+   *
+   * @var \Drupal\rest\LinkManager\CollectionLinkManagerInterface
+   */
+  protected $collectionLinkManager;
+
+  /**
    * Constructor.
    *
    * @param \Drupal\rest\LinkManager\TypeLinkManagerInterface $type_link_manager
-   *   Manager for handling bundle URIs.
+   *   Manager for handling type links corresponding to bundles.
    * @param \Drupal\rest\LinkManager\RelationLinkManagerInterface $relation_link_manager
-   *   Manager for handling bundle URIs.
+   *   Manager for handling link relations corresponding to fields.
+   * @param \Drupal\rest\LinkManager\CollectionLinkManagerInterface $collection_link_manager
+   *   Manager for handling collection links.
    */
-  public function __construct(TypeLinkManagerInterface $type_link_manager, RelationLinkManagerInterface $relation_link_manager) {
+  public function __construct(TypeLinkManagerInterface $type_link_manager, RelationLinkManagerInterface $relation_link_manager, CollectionLinkManagerInterface $collection_link_manager) {
     $this->typeLinkManager = $type_link_manager;
     $this->relationLinkManager = $relation_link_manager;
+    $this->collectionLinkManager = $collection_link_manager;
   }
 
   /**
@@ -72,4 +82,12 @@ class LinkManager implements LinkManagerInterface {
     return $this;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getCollectionItemRelation($collection_id) {
+    return $this->collectionLinkManager->getCollectionItemRelation($collection_id);
+  }
+
 }
+

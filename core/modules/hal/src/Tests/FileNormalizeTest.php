@@ -11,6 +11,7 @@ use Drupal\Core\Cache\MemoryBackend;
 use Drupal\hal\Encoder\JsonEncoder;
 use Drupal\hal\Normalizer\FieldItemNormalizer;
 use Drupal\hal\Normalizer\FileEntityNormalizer;
+use Drupal\rest\LinkManager\CollectionLinkManager;
 use Drupal\rest\LinkManager\LinkManager;
 use Drupal\rest\LinkManager\RelationLinkManager;
 use Drupal\rest\LinkManager\TypeLinkManager;
@@ -39,7 +40,7 @@ class FileNormalizeTest extends NormalizerTestBase {
     $this->installEntitySchema('file');
 
     $entity_manager = \Drupal::entityManager();
-    $link_manager = new LinkManager(new TypeLinkManager(new MemoryBackend('default'), \Drupal::moduleHandler(), \Drupal::service('config.factory'), \Drupal::service('request_stack')), new RelationLinkManager(new MemoryBackend('default'), $entity_manager, \Drupal::moduleHandler(), \Drupal::service('config.factory'), \Drupal::service('request_stack')));
+    $link_manager = new LinkManager(new TypeLinkManager(new MemoryBackend('default'), \Drupal::moduleHandler(), \Drupal::service('config.factory'), \Drupal::service('request_stack')), new RelationLinkManager(new MemoryBackend('default'), $entity_manager, \Drupal::moduleHandler(), \Drupal::service('config.factory'), \Drupal::service('request_stack')), new CollectionLinkManager());
 
     // Set up the mock serializer.
     $normalizers = array(
