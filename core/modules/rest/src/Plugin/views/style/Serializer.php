@@ -162,9 +162,7 @@ class Serializer extends StylePluginBase {
     $invalid_formats = array_diff($used_formats, $available_formats);
 
     if (!empty($invalid_formats)) {
-      $errors += array(
-        'Invalid formats found "' . join('","', $invalid_formats) . '". Please check your display format settings.',
-      );
+      $errors[] = $this->t("Invalid formats found %formats. Please check your display format settings.", array('%formats' => join(",", $invalid_formats)));
     }
 
     return $errors;
