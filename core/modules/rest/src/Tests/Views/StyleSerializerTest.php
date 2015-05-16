@@ -281,7 +281,7 @@ class StyleSerializerTest extends PluginTestBase {
     $expected_cache_tags = $view->getCacheTags();
     $expected_cache_tags[] = 'entity_test_list';
     /** @var \Drupal\Core\Entity\EntityInterface $entity */
-    foreach ($entities as $entity) {
+    foreach ($collection as $entity) {
       $expected_cache_tags = Cache::mergeTags($expected_cache_tags, $entity->getCacheTags());
     }
     $this->assertCacheTags($expected_cache_tags);
@@ -621,10 +621,13 @@ class StyleSerializerTest extends PluginTestBase {
     // Get the serializer service.
     $serializer = $this->container->get('serializer');
 
-    // Create the collection.
-    $collection = $this->getCollectionFromView($view);
-    $expected = SafeMarkup::checkPlain($serializer->serialize($collection, 'json'));
 
+    $entities = array();
+    foreach ($view->result as $row) {
+      $entities[] = $row->_entity;
+    }
+
+    $expected = SafeMarkup::checkPlain($serializer->serialize($entities, 'json'));
     $view->live_preview = TRUE;
 
     $build = $view->preview();
