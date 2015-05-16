@@ -8,8 +8,6 @@
 namespace Drupal\rest\Plugin\views\style;
 
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\views\ViewExecutable;
-use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\style\StylePluginBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -151,6 +149,25 @@ class Serializer extends StylePluginBase {
     }
 
     return $this->formats;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validate() {
+    $errors = parent::validate();
+
+    $available_formats = array_combine($this->formats, $this->formats);
+    $used_formats = $this->getFormats();
+    $invalid_formats = array_diff($used_formats, $available_formats);
+
+    if (!empty($invalid_formats)) {
+      $errors += array(
+        'Invalid formats found "' . join('","', $invalid_formats) . '". Please check your display format settings.',
+      );
+    }
+
+    return $errors;
   }
 
 }
