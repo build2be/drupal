@@ -778,10 +778,13 @@ class StyleSerializerTest extends PluginTestBase {
     // Get the serializer service.
     $serializer = $this->container->get('serializer');
 
-    // Create the collection.
-    $collection = $this->getCollectionFromView($view);
-    $expected = SafeMarkup::checkPlain($serializer->serialize($collection, 'json'));
 
+    $entities = array();
+    foreach ($view->result as $row) {
+      $entities[] = $row->_entity;
+    }
+
+    $expected = SafeMarkup::checkPlain($serializer->serialize($entities, 'json'));
     $view->live_preview = TRUE;
 
     $build = $view->preview();
