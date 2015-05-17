@@ -31,3 +31,7 @@ services:
   logger.channel.rest:
     parent: logger.channel_base
     arguments: ['rest']
+  rest.authentication_collector:
+    class: Drupal\rest\RestAuthenticationCollector
+    tags:
+    - { name: service_collector, tag: authentication_provider, call: addProvider }
