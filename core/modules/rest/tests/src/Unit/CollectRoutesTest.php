@@ -78,6 +78,14 @@ class CollectRoutesTest extends UnitTestCase {
     $container->set('plugin.manager.views.style', $style_manager);
     $container->set('renderer', $this->getMock('Drupal\Core\Render\RendererInterface'));
 
+    $authentication_manager = $this->getMockBuilder('\Drupal\Core\Authentication\AuthenticationManager')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $container->set('authentication', $authentication_manager);
+    $authentication_manager->expects($this->any())
+      ->method('getSortedProviders')
+      ->will($this->returnValue(array('basic_auth' => 'data', 'cookie' => 'data')));
+
     \Drupal::setContainer($container);
 
     $this->restExport = RestExport::create($container, array(), "test_routes", array());
