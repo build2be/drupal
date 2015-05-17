@@ -23,6 +23,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
+use Drupal\Core\Authentication\AuthenticationManager;
 
 /**
  * The base display plugin for path/callbacks. This is used for pages and feeds.
@@ -60,12 +61,15 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
    *   The route provider.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state key value store.
+   * @param \Drupal\Core\Authentication\AuthenticationManager $authentication_manager
+   *   The authentication manager.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteProviderInterface $route_provider, StateInterface $state) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteProviderInterface $route_provider, StateInterface $state, AuthenticationManager $authentication_manager = NULL) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->routeProvider = $route_provider;
     $this->state = $state;
+    $this->authenticationManager = $authentication_manager;
   }
 
   /**
@@ -77,7 +81,8 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
       $plugin_id,
       $plugin_definition,
       $container->get('router.route_provider'),
-      $container->get('state')
+      $container->get('state'),
+      $container->get('authentication')
     );
   }
 
@@ -118,6 +123,7 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
     $options = parent::defineOptions();
     $options['path'] = array('default' => '');
     $options['route_name'] = array('default' => '');
+    $options['auth']['default'] = array();
 
     return $options;
   }
@@ -219,6 +225,13 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
     if (!($route_name = $this->getOption('route_name'))) {
       $route_name = "view.$view_id.$display_id";
     }
+
+    // Add authentication to the route if it was set.
+    $auth = array_filter($this->getOption('auth'));
+    if (!empty($auth)) {
+      $route->setOption('_auth', $auth);
+    }
+
     $collection->add($route_name, $route);
     return array("$view_id.$display_id" => $route_name);
   }
@@ -378,6 +391,21 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
       'title' => $this->t('Path'),
       'value' => views_ui_truncate($path, 24),
     );
+
+    // Authentication.
+    $auth = array_filter($this->getOption('auth'));
+    if (empty($auth)) {
+      $auth = $this->t('No authentication is set');
+    }
+    else {
+      $auth = implode(', ', $auth);
+    }
+
+    $options['auth'] = array(
+      'category' => 'page',
+      'title' => $this->t('Authentication'),
+      'value' => views_ui_truncate($auth, 24),
+    );
   }
 
   /**
@@ -399,6 +427,17 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
           '#attributes' => array('dir' => LanguageInterface::DIRECTION_LTR),
           // Account for the leading backslash.
           '#maxlength' => 254,
+        );
+        break;
+      case 'auth':
+        $authentication_providers = array_keys($this->authenticationManager->getSortedProviders());
+        $form['#title'] .= $this->t('The supported authentication methods of this view');
+        $form['auth'] = array(
+          '#type' => 'checkboxes',
+          '#title' => $this->t('Autentication methods'),
+          '#description' => $this->t('These are the supported authentication providers for this view. When this view is requested, the client will be forced to authenticate with one of the selected providers. Make sure you set the appropiate requirements at the <em>Access</em> section since the Authentication System will fallback to the anonymous user if it fails to authenticate. For example: require Access: Role | Authenticated User.'),
+          '#options' => array_combine($authentication_providers, $authentication_providers),
+          '#default_value' => array_filter($this->getOption('auth')),
         );
         break;
     }
@@ -429,6 +468,10 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
 
     if ($form_state->get('section') == 'path') {
       $this->setOption('path', $form_state->getValue('path'));
+    }
+
+    if ($form_state->get('section') == 'auth') {
+      $this->setOption('auth', $form_state->getValue('auth'));
     }
   }
 

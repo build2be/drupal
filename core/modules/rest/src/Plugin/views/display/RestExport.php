@@ -18,6 +18,7 @@ use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\PathPluginBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\RouteCollection;
+use Drupal\Core\Authentication\AuthenticationManager;
 
 /**
  * The plugin that handles Data response callbacks for REST resources.
@@ -96,9 +97,11 @@ class RestExport extends PathPluginBase {
    *   The state key value store.
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer.
+   * @param \Drupal\Core\Authentication\AuthenticationManager $authentication_manager
+   *   The authentication manager.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteProviderInterface $route_provider, StateInterface $state, RendererInterface $renderer) {
-    parent::__construct($configuration, $plugin_id, $plugin_definition, $route_provider, $state);
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteProviderInterface $route_provider, StateInterface $state, RendererInterface $renderer, AuthenticationManager $authentication_manager) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $route_provider, $state, $authentication_manager);
 
     $this->renderer = $renderer;
   }
@@ -113,7 +116,9 @@ class RestExport extends PathPluginBase {
       $plugin_definition,
       $container->get('router.route_provider'),
       $container->get('state'),
-      $container->get('renderer')
+      $container->get('renderer'),
+      $container->get('authentication')
+
     );
   }
 
@@ -244,6 +249,7 @@ class RestExport extends PathPluginBase {
 
     $options['path']['category'] = 'path';
     $options['path']['title'] = $this->t('Path');
+    $options['auth']['category'] = 'path';
 
     // Remove css/exposed form settings, as they are not used for the data
     // display.
