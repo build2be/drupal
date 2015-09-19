@@ -7,6 +7,7 @@
 
 namespace Drupal\rest\Plugin\rest\resource;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Flood\FloodInterface;
 use Drupal\rest\ResourceResponse;
@@ -88,20 +89,29 @@ class UserLoginResource extends ResourceBase {
    */
   public function post(array $operation = array()) {
 
-    switch ($operation['op']) {
+    if (array_key_exists('op', $operation)) {
+      switch ($operation['op']) {
 
-      case 'login':
-        if (!empty($operation['credentials'])) {
+        case 'login':
+          if (!array_key_exists('credentials', $operation)) {
+            $operation['credentials'] = array();
+          }
           return $this->login($operation['credentials']);
-        }
-        throw new BadRequestHttpException('Missing credentials.');
 
-      case 'logout':
-        return $this->logout();
+        case 'status':
+          return $this->status();
 
-      default:
-        throw new BadRequestHttpException('Unsupported op.');
+        case 'logout':
+          return $this->logout();
 
+        default:
+          // TODO: do we have to escape?
+          throw new BadRequestHttpException('Unsupported op '. Html::escape($operation['op']) . '.');
+
+      }
+    }
+    else {
+      throw new BadRequestHttpException('No op found.');
     }
   }
 
@@ -115,6 +125,14 @@ class UserLoginResource extends ResourceBase {
    *   The HTTP response object
    */
   protected function login(array $credentials = array()) {
+    if ($this->userIsAuthenticated()) {
+      throw new BadRequestHttpException('You need to logout first.');
+    }
+
+    if (empty($credentials)) {
+      throw new BadRequestHttpException('Missing credentials.');
+    }
+
     // Verify that the username is filled.
     if (!array_key_exists('name', $credentials)) {
       throw new BadRequestHttpException('Missing credentials.name.');
@@ -138,21 +156,36 @@ class UserLoginResource extends ResourceBase {
     if ($uid = \Drupal::service('user.auth')->authenticate($credentials['name'], $credentials['pass'])) {
       $user = User::load($uid);
       user_login_finalize($user);
-      return new ResourceResponse('You are logged in as ' . $credentials['name'], 200, array());
+      return new ResourceResponse('You are logged in as ' . $credentials['name'] . '.', 200, array());
     }
 
     $this->flood->register('rest.login_cookie', $this->configFactory->get('user.flood')->get('user_window'));
     throw new BadRequestHttpException('Sorry, unrecognized username or password.');
   }
 
-  /**
+  protected function userIsAuthenticated() {
+    return \Drupal::currentUser()->isAuthenticated();
+
+  }
+  protected function status() {
+    if (\Drupal::currentUser()->isAuthenticated()) {
+      return new ResourceResponse('You are logged in.', 200, array());
+    }
+    return new ResourceResponse('You are not logged in.', 200, array());
+  }
+
+    /**
    * User Logout.
    *
    * @return ResourceResponse
    */
   protected function logout() {
+    if (!\Drupal::currentUser()->isAuthenticated()) {
+      throw new BadRequestHttpException('You cannot logout as you are not logged in.');
+    }
+
     user_logout();
-    return new ResourceResponse('Logged out!', 200, array());
+    return new ResourceResponse('You are logged out.', 200, array());
   }
 
   /**

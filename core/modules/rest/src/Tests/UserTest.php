@@ -24,7 +24,7 @@ class UserTest extends RESTTestBase {
   public static $modules = array('basic_auth', 'hal', 'rest');
 
   /**
-   * Tests login, status, logout.
+   * Test user session life cycle.
    */
   public function testLogin() {
     $this->defaultAuth = array('basic_auth');
@@ -39,42 +39,54 @@ class UserTest extends RESTTestBase {
 
     $basic_auth = ['Authorization: Basic ' . base64_encode("$name:$pass")];
 
-    $payload = $this->getPayload('login', $name, $pass);
+    $payload = array();
     $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
-    $this->assertResponse('200', 'Successfully logged into Drupal.');
-
-    $payload = $this->getPayload('login');
-    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
-    $this->assertResponse('400', 'Missing credentials.');
-
-    $payload = $this->getPayload('login', $name);
-    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
-    $this->assertResponse('400', 'Missing credentials.name.');
-
-    $payload = $this->getPayload('login', NULL, $pass);
-    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
-    $this->assertResponse('400', 'Missing credentials.pass.');
-
-    $payload = $this->getPayload('login', $name, 'garbage');
-    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
-    $this->assertResponse('400', 'Sorry, unrecognized username or password.');
-
-    $payload = $this->getPayload('login', 'garbage', $pass);
-    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
-    $this->assertResponse('400', 'Sorry, unrecognized username or password.');
-
-    $payload = $this->getPayload('status');
-    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
-    $this->assertResponse('200', 'You are not logged in.');
+    $this->assertResponseAndText(400, 'No op found.');
 
     $payload = $this->getPayload('garbage');
     $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
-    $this->assertResponse('400', 'Unsupported op.');
+    $this->assertResponseAndText(400, 'Unsupported op garbage.');
+
+    $payload = $this->getPayload('status');
+    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
+    $this->assertResponseAndText(200, 'You are logged in.');
 
     $payload = $this->getPayload('logout');
-    //$this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType);
-    $this->assertResponse('200', 'Successfully logged out from Drupal.', $basic_auth);
+    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
+    $this->assertResponseAndText(200, 'You are logged out.', $basic_auth);
 
+    $payload = $this->getPayload('login');
+    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
+    $this->assertResponseAndText(400, 'Missing credentials.');
+
+    $payload = $this->getPayload('login', $name);
+    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
+    $this->assertResponseAndText(400, 'Missing credentials.pass.');
+
+    $payload = $this->getPayload('login', NULL, $pass);
+    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
+    $this->assertResponseAndText(400, 'Missing credentials.name.');
+
+    $payload = $this->getPayload('login', $name, 'garbage');
+    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
+    $this->assertResponseAndText(400, 'Sorry, unrecognized username or password.');
+
+    $payload = $this->getPayload('login', 'garbage', $pass);
+    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
+    $this->assertResponseAndText(400, 'Sorry, unrecognized username or password.');
+
+    $payload = $this->getPayload('login', $name, $pass);
+    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
+    $this->assertResponseAndText(200, "You are logged in as $name");
+
+    $payload = $this->getPayload('status');
+    $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
+    $this->assertResponseAndText(200, 'You are logged in.');
+  }
+
+  protected function assertResponseAndText($code, $text) {
+    $this->assertResponse($code);
+    $this->assertText($text);
   }
 
   /**
