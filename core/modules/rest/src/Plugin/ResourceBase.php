@@ -8,6 +8,7 @@
 namespace Drupal\rest\Plugin;
 
 use Drupal\Core\Access\AccessManagerInterface;
+use Drupal\Core\Flood\FloodInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\PluginBase;
 use Psr\Log\LoggerInterface;
@@ -42,6 +43,11 @@ abstract class ResourceBase extends PluginBase implements ContainerFactoryPlugin
   protected $logger;
 
   /**
+   * @var \Drupal\Core\Config\ImmutableConfig
+   */
+  protected $flood;
+
+  /**
    * Constructs a Drupal\rest\Plugin\ResourceBase object.
    *
    * @param array $configuration
@@ -54,11 +60,14 @@ abstract class ResourceBase extends PluginBase implements ContainerFactoryPlugin
    *   The available serialization formats.
    * @param \Psr\Log\LoggerInterface $logger
    *   A logger instance.
+   * @param \Drupal\Core\Flood\FloodInterface $flood
+   *   The flood control mechanism.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, array $serializer_formats, LoggerInterface $logger) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, array $serializer_formats, LoggerInterface $logger, FloodInterface $flood) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->serializerFormats = $serializer_formats;
     $this->logger = $logger;
+    $this->flood = $flood;
   }
 
   /**
@@ -70,7 +79,8 @@ abstract class ResourceBase extends PluginBase implements ContainerFactoryPlugin
       $plugin_id,
       $plugin_definition,
       $container->getParameter('serializer.formats'),
-      $container->get('logger.factory')->get('rest')
+      $container->get('logger.factory')->get('rest'),
+      $container->get('flood')
     );
   }
 
@@ -213,5 +223,22 @@ abstract class ResourceBase extends PluginBase implements ContainerFactoryPlugin
     );
     return $route;
   }
+
+  /**
+   * Checks for flooding.
+   *
+   * @param \Drupal\Core\Config\ImmutableConfig $config
+   * @param $name
+   * @return bool
+   */
+  protected function restFloodControl($config, $name) {
+    $limit = $config->get('user_limit');
+    $interval = $config->get('user_window');
+    if (!$this->flood->isAllowed($name, $limit, $interval)) {
+      return TRUE;
+    }
+    return FALSE;
+  }
+
 
 }

@@ -83,7 +83,7 @@ abstract class RESTTestBase extends WebTestBase {
    * @return string
    *   The content returned from the request.
    */
-  protected function httpRequest($url, $method, $body = NULL, $mime_type = NULL) {
+  protected function httpRequest($url, $method, $body = NULL, $mime_type = NULL, $request_headers = []) {
     if (!isset($mime_type)) {
       $mime_type = $this->defaultMimeType;
     }
@@ -113,10 +113,11 @@ abstract class RESTTestBase extends WebTestBase {
           CURLOPT_POSTFIELDS => $body,
           CURLOPT_URL => $url,
           CURLOPT_NOBODY => FALSE,
-          CURLOPT_HTTPHEADER => array(
+          CURLOPT_HTTPHEADER => array_merge(
+            array(
             'Content-Type: ' . $mime_type,
             'X-CSRF-Token: ' . $token,
-          ),
+          ), $request_headers),
         );
         break;
 
@@ -168,6 +169,9 @@ abstract class RESTTestBase extends WebTestBase {
 
     $this->verbose($method . ' request to: ' . $url .
       '<hr />Code: ' . curl_getinfo($this->curlHandle, CURLINFO_HTTP_CODE) .
+      '<hr />Request headers: ' . nl2br(print_r($curl_options[CURLOPT_HTTPHEADER], TRUE)) .
+      '<hr />Extra headers: ' . nl2br(print_r($request_headers, TRUE)) .
+      '<hr />Request body: ' . nl2br(print_r($body, TRUE)) .
       '<hr />Response headers: ' . nl2br(print_r($headers, TRUE)) .
       '<hr />Response body: ' . $this->responseBody);
 
