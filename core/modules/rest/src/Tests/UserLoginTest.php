@@ -14,7 +14,7 @@ use Drupal\rest\Tests\RESTTestBase;
  *
  * @group rest
  */
-class UserTest extends RESTTestBase {
+class UserLoginTest extends RESTTestBase {
 
   /**
    * Modules to install.
