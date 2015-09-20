@@ -83,6 +83,14 @@ class UserLoginResourceTest extends UnitTestCase {
 
   /**
    * @expectedException \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
+   * @expectedExceptionMessage No op found. Use: status, login, logout.
+   */
+  public function testEmptyPayload() {
+    $this->testClass->post([]);
+  }
+
+  /**
+   * @expectedException \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
    * @expectedExceptionMessage Missing credentials.
    */
   public function testMissingCredentials() {
@@ -91,7 +99,7 @@ class UserLoginResourceTest extends UnitTestCase {
 
   /**
    * @expectedException \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
-   * @expectedExceptionMessage Unsupported op.
+   * @expectedExceptionMessage Unsupported op UnsuportedOp.
    */
   public function testUnsupportedOp() {
     $this->testClass->post(['op'=>'UnsuportedOp']);
@@ -99,7 +107,7 @@ class UserLoginResourceTest extends UnitTestCase {
 
   /**
    * @expectedException \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
-   * @expectedExceptionMessage Missing credentials.name.
+   * @expectedExceptionMessage Missing credentials.
    */
   public function testLoginMissingCredentialName() {
     $method = $this->getProtectedMethod('login');

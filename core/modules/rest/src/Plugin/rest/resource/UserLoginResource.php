@@ -111,7 +111,7 @@ class UserLoginResource extends ResourceBase {
       }
     }
     else {
-      throw new BadRequestHttpException('No op found.');
+      throw new BadRequestHttpException('No op found. Use: status, login, logout.');
     }
   }
 

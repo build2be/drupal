@@ -41,7 +41,7 @@ class UserTest extends RESTTestBase {
 
     $payload = array();
     $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
-    $this->assertResponseAndText(400, 'No op found.');
+    $this->assertResponseAndText(400, 'No op found. Use: status, login, logout.');
 
     $payload = $this->getPayload('garbage');
     $this->httpRequest('user_login', 'POST', json_encode($payload), $this->defaultMimeType, $basic_auth);
