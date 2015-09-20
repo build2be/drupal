@@ -133,9 +133,6 @@ class UserLoginResource extends ResourceBase {
    *   The HTTP response object
    */
   protected function login(array $credentials = array()) {
-    if (\Drupal::currentUser()->isAuthenticated()) {
-      //throw new BadRequestHttpException('You need to logout first.');
-    }
 
     if (empty($credentials)) {
       throw new BadRequestHttpException('Missing credentials.');
@@ -184,10 +181,6 @@ class UserLoginResource extends ResourceBase {
    * @return ResourceResponse
    */
   protected function logout() {
-    if (!\Drupal::currentUser()->isAuthenticated()) {
-      throw new BadRequestHttpException('You cannot logout as you are not logged in.');
-    }
-
     user_logout();
     return new ResourceResponse('You are logged out.', 200, array());
   }
