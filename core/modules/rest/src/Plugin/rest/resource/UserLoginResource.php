@@ -50,8 +50,8 @@ class UserLoginResource extends ResourceBase {
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, array $serializer_formats, LoggerInterface $loggery, ConfigFactoryInterface $config_factory, FloodInterface $flood) {
-    parent::__construct($configuration, $plugin_id, $plugin_definition, $serializer_formats, $loggery, $flood);
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, array $serializer_formats, LoggerInterface $logger, ConfigFactoryInterface $config_factory, FloodInterface $flood) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $serializer_formats, $logger, $flood);
     $this->configFactory = $config_factory;
   }
 
