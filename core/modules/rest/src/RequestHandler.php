@@ -60,12 +60,12 @@ class RequestHandler implements ContainerAwareInterface {
       $method_settings = $config[$plugin][$request->getMethod()];
       if (empty($method_settings['supported_formats']) || in_array($format, $method_settings['supported_formats'])) {
         $definition = $resource->getPluginDefinition();
-        $class = isset($definition['serialization_class']) ? $definition['serialization_class'] : NULL;
         try {
-          if ($class) {
-            $unserialized = $serializer->deserialize($received, $class, $format, array('request_method' => $method));
+          if (array_key_exists('serialization_class', $definition)) {
+            $unserialized = $serializer->deserialize($received, $definition['serialization_class'], $format, array('request_method' => $method));
           }
-          // Avoid denormalization because we need to instantiate a class.
+          // If the plugin does not specify a serialization class just decode the received data.
+          // Example: received JSON is decoded into a PHP array.
           else {
             $unserialized = $serializer->decode($received, $format, array('request_method' => $method));
           }
