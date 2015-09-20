@@ -35,6 +35,11 @@ class UserLoginResource extends ResourceBase {
   protected $configFactory;
 
   /**
+   * @var \Drupal\Core\Config\ImmutableConfig
+   */
+  protected $flood;
+
+  /**
    * Constructs a new RestPermissions instance.
    *
    * @param array $configuration
@@ -49,10 +54,13 @@ class UserLoginResource extends ResourceBase {
    *   A logger instance.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
+   * @param \Drupal\Core\Flood\FloodInterface $flood
+   *   The flood control mechanism.
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition, array $serializer_formats, LoggerInterface $logger, ConfigFactoryInterface $config_factory, FloodInterface $flood) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $serializer_formats, $logger, $flood);
     $this->configFactory = $config_factory;
+    $this->flood = $flood;
   }
 
   /**
@@ -192,6 +200,22 @@ class UserLoginResource extends ResourceBase {
    */
   protected function userIsBlocked($name) {
     return user_is_blocked($name);
+  }
+
+  /**
+   * Checks for flooding.
+   *
+   * @param \Drupal\Core\Config\ImmutableConfig $config
+   * @param $name
+   * @return bool
+   */
+  protected function restFloodControl($config, $name) {
+    $limit = $config->get('user_limit');
+    $interval = $config->get('user_window');
+    if (!$this->flood->isAllowed($name, $limit, $interval)) {
+      return TRUE;
+    }
+    return FALSE;
   }
 
 }
