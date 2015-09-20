@@ -2,12 +2,10 @@
 
 /**
  * @file
- * Contains Drupal\rest\test\AuthTest.
+ * Contains Drupal\rest\test\UserLoginTest.
  */
 
 namespace Drupal\rest\Tests;
-
-use Drupal\rest\Tests\RESTTestBase;
 
 /**
  * Tests REST user login.
