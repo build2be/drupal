@@ -125,8 +125,8 @@ class UserLoginResource extends ResourceBase {
    *   The HTTP response object
    */
   protected function login(array $credentials = array()) {
-    if ($this->userIsAuthenticated()) {
-      throw new BadRequestHttpException('You need to logout first.');
+    if (\Drupal::currentUser()->isAuthenticated()) {
+      //throw new BadRequestHttpException('You need to logout first.');
     }
 
     if (empty($credentials)) {
@@ -163,10 +163,6 @@ class UserLoginResource extends ResourceBase {
     throw new BadRequestHttpException('Sorry, unrecognized username or password.');
   }
 
-  protected function userIsAuthenticated() {
-    return \Drupal::currentUser()->isAuthenticated();
-
-  }
   protected function status() {
     if (\Drupal::currentUser()->isAuthenticated()) {
       return new ResourceResponse('You are logged in.', 200, array());
