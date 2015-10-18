@@ -17,6 +17,6 @@ class YearMonthDate extends Date {
   /**
    * {@inheritdoc}
    */
-  protected $argFormat = 'ym';
+  protected $argFormat = 'Ym';
 
 }
