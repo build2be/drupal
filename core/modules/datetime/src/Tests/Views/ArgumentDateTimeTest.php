@@ -149,6 +149,7 @@ class ArgumentDateTimeTest extends DateTimeHandlerTestBase {
     $this->executeView($view, ['41']);
     $expected = [];
     $expected[] = ['nid' => $this->nodes[0]->id()];
+    $expected[] = ['nid' => $this->nodes[1]->id()];
     $this->assertIdenticalResultset($view, $expected, $this->map);
     $view->destroy();
 
